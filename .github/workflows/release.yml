@@ -5,11 +5,23 @@ on:
     tags:
       - 'v*'
 
+# Cancel previous runs on the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+
+
+# Minimal permissions by default
+permissions:
+  contents: read
+
 jobs:
   # Validate version matches tag
   verify-version:
     name: Verify version matches tag
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent hung jobs
     steps:
       - uses: actions/checkout@v6
       
@@ -33,6 +45,7 @@ jobs:
     name: Create GitHub Release
     needs: verify-version
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent hung jobs
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
@@ -77,6 +90,7 @@ jobs:
     name: Build and upload release assets
     needs: create-release
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15  # Prevent hung jobs
     strategy:
       matrix:
         include:

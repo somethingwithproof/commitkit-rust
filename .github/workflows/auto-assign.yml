@@ -4,27 +4,11 @@ on:
     types: [opened, ready_for_review]
 
 # Cancel previous runs on the same PR
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-
-
 # Minimal permissions by default
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 permissions:
   contents: read
 
@@ -33,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Auto-assign PR
-        uses: kentaro-m/auto-assign-action@v2.0.0
+        uses: kentaro-m/auto-assign-action@v2.0.1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           assignees: thomasvincent

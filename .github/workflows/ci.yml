@@ -14,14 +14,26 @@ on:
       - 'LICENSE'
       - '.gitignore'
 
+# Cancel previous runs on the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
+
+
+# Minimal permissions by default
+permissions:
+  contents: read
 
 jobs:
   test:
     name: Test
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15  # Prevent hung jobs
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -46,6 +58,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent hung jobs
     steps:
       - uses: actions/checkout@v6
       
@@ -67,6 +80,7 @@ jobs:
   coverage:
     name: Code coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent hung jobs
     steps:
       - uses: actions/checkout@v6
       

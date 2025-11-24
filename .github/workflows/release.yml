@@ -11,7 +11,7 @@ jobs:
     name: Verify version matches tag
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       
       - name: Get tag version
         id: get_tag
@@ -37,7 +37,7 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       
@@ -96,7 +96,7 @@ jobs:
             target: aarch64-apple-darwin
             asset_name: commitkit-macos-arm64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -143,7 +143,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'thomasvincent/commitkit-rust' # Only publish from the original repo
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master

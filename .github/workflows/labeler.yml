@@ -4,11 +4,25 @@ on:
     types: [opened, synchronize, reopened]
 
 # Cancel previous runs on the same PR
+
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 
+
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 jobs:
   triage:
     permissions:
@@ -20,3 +34,10 @@ jobs:
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         sync-labels: true
+
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

@@ -5,11 +5,25 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 # Cancel previous runs on the same PR
+
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 
+
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 permissions:
   contents: write
   pull-requests: write
@@ -56,3 +70,11 @@ jobs:
           gh pr merge --auto --squash "${{ github.event.pull_request.number }}" || echo "Auto-merge enabled, waiting for approval"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

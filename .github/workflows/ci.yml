@@ -6,13 +6,6 @@ on:
     paths-ignore:
       - '**.md'
       - 'LICENSE'
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
       - '.gitignore'
   pull_request:
     branches: [ main ]
@@ -22,55 +15,18 @@ on:
       - '.gitignore'
 
 # Cancel previous runs on the same PR
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 env:
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
 
-
 # Minimal permissions by default
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 permissions:
   contents: read
 
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 jobs:
   test:
     name: Test
@@ -85,23 +41,25 @@ jobs:
             rust: nightly
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      
+
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
-      
+
       - name: Run tests
         run: cargo test --verbose
 
       - name: Job Summary
         if: always()
         run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Job Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **OS:** ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rust:** ${{ matrix.rust }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 
   lint:
@@ -110,26 +68,26 @@ jobs:
     timeout-minutes: 15  # Prevent hung jobs
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
           components: rustfmt, clippy
-      
+
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
-      
+
       - name: Check formatting
         run: cargo fmt --all -- --check
-      
+
       - name: Run clippy
         run: cargo clippy -- -D warnings
 
       - name: Job Summary
         if: always()
         run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "### Lint Job Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 
@@ -139,21 +97,21 @@ jobs:
     timeout-minutes: 15  # Prevent hung jobs
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-      
+
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
-      
+
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin
-      
+
       - name: Run cargo-tarpaulin
         run: cargo tarpaulin --out Xml
-      
+
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v5
         with:
@@ -163,30 +121,31 @@ jobs:
       - name: Job Summary
         if: always()
         run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Job Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 
   security_audit:
     name: Security audit
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-      
+
       - name: Install cargo-audit
         run: cargo install cargo-audit
-      
+
       - name: Run cargo-audit
         run: cargo audit
 
       - name: Job Summary
         if: always()
         run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "### Security Audit Job Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

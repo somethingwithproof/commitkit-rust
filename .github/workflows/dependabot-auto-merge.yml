@@ -2,29 +2,13 @@ name: Dependabot Auto-Merge
 
 on:
   pull_request:
-  workflow_dispatch:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
-# Cancel previous runs on the same PR
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 permissions:
   contents: write
   pull-requests: write
@@ -33,6 +17,7 @@ jobs:
   auto-merge:
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.draft == false
+
     steps:
       - name: Check if PR is from Dependabot
         id: dependabot-check
@@ -72,10 +57,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-
       - name: Job Summary
         if: always()
         run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
+          echo "### Dependabot Auto-Merge Results ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY

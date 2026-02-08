@@ -28,6 +28,11 @@ CommitKit is a command-line tool that helps developers create well-structured an
   - Commit statistics and analysis
   - Interactive prompts for template values
 
+## Prerequisites
+
+- **Rust**: Version 1.85.0 or higher (MSRV)
+- **Cargo**: Included with Rust installation
+
 ## Installation
 
 ### From crates.io
@@ -135,6 +140,48 @@ commitkit --stats --days 30
 
 # Validate a commit message
 commitkit --validate .git/COMMIT_EDITMSG
+```
+
+## Development
+
+### Build
+
+```bash
+# Debug build
+cargo build
+
+# Release build
+cargo build --release
+```
+
+### Test
+
+```bash
+# Run all tests
+cargo test
+
+# Run tests with output
+cargo test -- --nocapture
+```
+
+### Lint
+
+```bash
+# Check for linting issues
+cargo clippy --all-targets --all-features
+
+# Apply automatic fixes
+cargo clippy --fix --allow-dirty
+```
+
+### Format
+
+```bash
+# Check formatting
+cargo fmt -- --check
+
+# Apply formatting
+cargo fmt
 ```
 
 ## Configuration

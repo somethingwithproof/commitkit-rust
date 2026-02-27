@@ -21,7 +21,7 @@ pub fn setup_test_repo() -> TempDir {
 
     // Initialize git repo
     let status = std::process::Command::new("git")
-        .args(&["init"])
+        .args(["init"])
         .current_dir(temp_dir.path())
         .status()
         .expect("Failed to run git init");
@@ -30,13 +30,13 @@ pub fn setup_test_repo() -> TempDir {
 
     // Configure git for tests
     std::process::Command::new("git")
-        .args(&["config", "user.name", "Test User"])
+        .args(["config", "user.name", "Test User"])
         .current_dir(temp_dir.path())
         .status()
         .expect("Failed to configure git user name");
 
     std::process::Command::new("git")
-        .args(&["config", "user.email", "test@example.com"])
+        .args(["config", "user.email", "test@example.com"])
         .current_dir(temp_dir.path())
         .status()
         .expect("Failed to configure git user email");

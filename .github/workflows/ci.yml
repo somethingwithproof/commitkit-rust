@@ -94,7 +94,7 @@ jobs:
 
   coverage:
     name: Code coverage
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     timeout-minutes: 15  # Prevent hung jobs
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -128,7 +128,7 @@ jobs:
 
   security_audit:
     name: Security audit
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

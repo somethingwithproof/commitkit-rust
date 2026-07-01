@@ -107,6 +107,11 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@ad397744b0d591a723ab90405b7247fac0e6b8db # v2
 
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev
+
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin
 

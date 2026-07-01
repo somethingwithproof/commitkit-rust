@@ -102,7 +102,7 @@ impl CommitAnalyzer {
         // Type breakdown
         result.push_str("Commit types:\n");
         let mut type_counts: Vec<(String, usize)> = stats.type_counts.into_iter().collect();
-        type_counts.sort_by(|a, b| b.1.cmp(&a.1));
+        type_counts.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
 
         for (commit_type, count) in type_counts {
             let percentage = (count as f64 / stats.total_commits as f64) * 100.0;
@@ -116,7 +116,7 @@ impl CommitAnalyzer {
         if !stats.scope_counts.is_empty() {
             result.push_str("\nTop scopes:\n");
             let mut scope_counts: Vec<(String, usize)> = stats.scope_counts.into_iter().collect();
-            scope_counts.sort_by(|a, b| b.1.cmp(&a.1));
+            scope_counts.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
 
             for (scope, count) in scope_counts.iter().take(5) {
                 result.push_str(&format!("  {}: {}\n", scope, count));
@@ -128,7 +128,7 @@ impl CommitAnalyzer {
             result.push_str("\nTop contributors:\n");
             let mut contributor_counts: Vec<(String, usize)> =
                 stats.contributors.into_iter().collect();
-            contributor_counts.sort_by(|a, b| b.1.cmp(&a.1));
+            contributor_counts.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
 
             for (contributor, count) in contributor_counts.iter().take(5) {
                 let percentage = (*count as f64 / stats.total_commits as f64) * 100.0;

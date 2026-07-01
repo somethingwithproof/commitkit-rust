@@ -109,8 +109,12 @@ jobs:
 
       - name: Install native dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev
+          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y pkg-config libssl-dev
+          else
+            echo "Skipping apt install because passwordless sudo is unavailable."
+          fi
 
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin

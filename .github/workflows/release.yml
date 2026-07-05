@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: release-\${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

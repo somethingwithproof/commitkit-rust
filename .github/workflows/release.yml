@@ -17,8 +17,4 @@ concurrency:
 jobs:
   release:
     uses: thomasvincent/.github/.github/workflows/reusable-semantic-release.yml@main
-    with:
-      project-type: 'rust'
-      build-artifacts: true
-      upload-artifacts: true
     secrets: inherit

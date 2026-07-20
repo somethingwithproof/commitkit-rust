@@ -1,29 +1,15 @@
 name: "Pull Request Labeler"
 on:
   pull_request_target:
-  workflow_dispatch:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 # Cancel previous runs on the same PR
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 
-
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 jobs:
   triage:
     permissions:

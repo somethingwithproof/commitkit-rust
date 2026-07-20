@@ -1,8 +1,8 @@
 name: Auto Assign
 on:
   pull_request:
-  workflow_dispatch:
     types: [opened, ready_for_review]
+  workflow_dispatch:
 
 # Cancel previous runs on the same PR
 concurrency:
@@ -12,6 +12,7 @@ concurrency:
 # Minimal permissions by default
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   add-assignees:

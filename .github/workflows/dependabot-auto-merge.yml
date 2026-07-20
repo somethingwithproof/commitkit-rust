@@ -1,77 +1,56 @@
 name: Dependabot Auto-Merge
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: "17,47 * * * *"
   workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: write
   pull-requests: write
+  checks: read
+
+concurrency:
+  group: dependabot-auto-merge
+  cancel-in-progress: false
 
 jobs:
-  auto-merge:
+  merge:
+    if: github.event_name != 'pull_request_target' || github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.draft == false
-
     steps:
-      - name: Check if PR is from Dependabot
-        id: dependabot-check
-        run: |
-          echo "This PR is from Dependabot"
-          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
-
-      - name: Wait for test checks
-        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
-        id: wait-for-test
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: "Test"
-          ref: ${{ github.event.pull_request.head.sha }}
-          timeoutSeconds: 1800
-
-      - name: Wait for lint checks
-        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
-        id: wait-for-lint
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: "Lint"
-          ref: ${{ github.event.pull_request.head.sha }}
-          timeoutSeconds: 1800
-
-      - name: Auto-merge minor and patch updates
-        if: |
-          steps.wait-for-test.outputs.conclusion == 'success' &&
-          steps.wait-for-lint.outputs.conclusion == 'success' &&
-          (contains(github.event.pull_request.title, 'bump') ||
-           contains(github.event.pull_request.title, 'update') ||
-           contains(github.event.pull_request.title, 'Update'))
-        run: |
-          gh pr merge --auto --squash "${{ github.event.pull_request.number }}"
+      - name: Merge Dependabot pull requests with successful checks
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Enable auto-merge for major updates with approval
-        if: |
-          steps.wait-for-test.outputs.conclusion == 'success' &&
-          steps.wait-for-lint.outputs.conclusion == 'success' &&
-          (contains(github.event.pull_request.title, 'major') ||
-           contains(github.event.pull_request.title, 'Major'))
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "Major update detected - enabling auto-merge but requires manual approval"
-          gh pr merge --auto --squash "${{ github.event.pull_request.number }}" || echo "Auto-merge enabled, waiting for approval"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          set -euo pipefail
 
-      - name: Job Summary
-        if: always()
-        run: |
-          echo "### Dependabot Auto-Merge Results ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --author "app/dependabot" \
+            --json number,isDraft,mergeable \
+            --jq '.[] | select(.isDraft == false and .mergeable == "MERGEABLE") | .number' |
+          while read -r pr; do
+            [ -n "$pr" ] || continue
+
+            states=$(gh pr checks "$pr" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json state \
+              --jq '.[].state' 2>/dev/null || true)
+
+            # Fail closed when a repository has no CI checks.
+            [ -n "$states" ] || continue
+
+            if grep -Eq '^(PENDING|QUEUED|IN_PROGRESS|FAILURE|ERROR|CANCELLED|STALE|ACTION_REQUIRED)$' <<<"$states"; then
+              continue
+            fi
+
+            gh pr merge "$pr" \
+              --repo "$GITHUB_REPOSITORY" \
+              --squash \
+              --delete-branch
+          done

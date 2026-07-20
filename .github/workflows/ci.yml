@@ -41,7 +41,7 @@ jobs:
           - os: ubuntu-latest
             rust: nightly
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4be9e76fd7c4901c61fb841f559994984270fce7 # master
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15  # Prevent hung jobs
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4be9e76fd7c4901c61fb841f559994984270fce7 # master
@@ -97,7 +97,7 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     timeout-minutes: 15  # Prevent hung jobs
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4be9e76fd7c4901c61fb841f559994984270fce7 # master
@@ -125,7 +125,7 @@ jobs:
         run: cargo tarpaulin --out Xml
 
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
@@ -142,7 +142,7 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master

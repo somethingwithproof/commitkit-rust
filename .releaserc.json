@@ -8,10 +8,9 @@
       "preset": "conventionalcommits"
     }],
     "@semantic-release/changelog",
-    ["@semantic-release/npm", {"npmPublish": false}],
     "@semantic-release/github",
     ["@semantic-release/git", {
-      "assets": ["CHANGELOG.md", "package.json", "Cargo.toml", "pyproject.toml"],
+      "assets": ["CHANGELOG.md", "Cargo.toml"],
       "message": "chore(release): ${nextRelease.version} [skip ci]"
     }]
   ]

@@ -17,4 +17,3 @@ concurrency:
 jobs:
   release:
     uses: thomasvincent/.github/.github/workflows/reusable-semantic-release.yml@main
-    secrets: inherit

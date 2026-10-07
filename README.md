@@ -1,8 +1,10 @@
 # CommitKit
 
 [![CI](https://github.com/somethingwithproof/commitkit-rust/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/somethingwithproof/commitkit-rust/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/somethingwithproof/commitkit-rust)](https://github.com/somethingwithproof/commitkit-rust/releases)
 [![Rust minimum](https://img.shields.io/badge/Rust_minimum-1.88.0-blue)](./Cargo.toml)
+[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/somethingwithproof/commitkit-rust/badge)](https://scorecard.dev/viewer/?uri=github.com/somethingwithproof/commitkit-rust)
 
 CommitKit is a command-line tool that helps developers create well-structured and consistent commit messages following the [Conventional Commits](https://www.conventionalcommits.org/) specification. It provides an interactive interface to guide users through the process of constructing a commit message with a type, optional scope, subject, body, and footer.
 

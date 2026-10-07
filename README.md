@@ -27,33 +27,10 @@ CommitKit is a command-line tool that helps developers create well-structured an
 
 ## Prerequisites
 
-- **Rust**: Version 1.85.0 or higher (MSRV)
+- **Rust**: Version 1.88.0 or higher (MSRV)
 - **Cargo**: Included with Rust installation
 
 ## Installation
-
-### From crates.io
-
-```shell
-cargo install commitkit
-```
-
-### From binaries
-
-Download the latest binary from the [Releases](https://github.com/somethingwithproof/commitkit-rust/releases) page.
-
-#### Linux/macOS
-
-```shell
-# Make it executable
-chmod +x commitkit
-# Move to a directory in your PATH
-sudo mv commitkit /usr/local/bin/
-```
-
-#### Windows
-
-Download the `.exe` file and add it to your PATH.
 
 ### From source
 

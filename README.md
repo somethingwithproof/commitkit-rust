@@ -1,6 +1,7 @@
 # CommitKit
 
 [![CI](https://github.com/somethingwithproof/commitkit-rust/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/somethingwithproof/commitkit-rust/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=somethingwithproof_commitkit-rust&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=somethingwithproof_commitkit-rust)
 [![Release](https://img.shields.io/github/v/release/somethingwithproof/commitkit-rust)](https://github.com/somethingwithproof/commitkit-rust/releases)
 [![Rust minimum](https://img.shields.io/badge/Rust_minimum-1.88.0-blue)](./Cargo.toml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)

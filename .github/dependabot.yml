@@ -1,6 +1,5 @@
 version: 2
 updates:
-  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -8,12 +7,12 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci(deps)"
     groups:
       actions:
         patterns:
           - "*"
-
-  # cargo
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
@@ -23,8 +22,15 @@ updates:
     open-pull-requests-limit: 10
     allow:
       - dependency-type: "all"
-
-  # Docker
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      cargo-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
@@ -34,8 +40,42 @@ updates:
     open-pull-requests-limit: 10
     allow:
       - dependency-type: "all"
-  - package-ecosystem: "npm"
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      docker-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+  - package-ecosystem: "docker-compose"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+      day: "monday"
+      time: "09:00"
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      docker-compose-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      pre-commit-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

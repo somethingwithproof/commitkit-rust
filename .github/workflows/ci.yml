@@ -94,7 +94,7 @@ jobs:
 
   coverage:
     name: Code coverage
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15  # Prevent hung jobs
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
@@ -117,7 +117,7 @@ jobs:
           fi
 
       - name: Install cargo-tarpaulin
-        uses: taiki-e/install-action@v2.87.29
+        uses: taiki-e/install-action@v2.87.31
         with:
           tool: cargo-tarpaulin
 
@@ -139,7 +139,7 @@ jobs:
 
   security_audit:
     name: Security audit
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
@@ -150,7 +150,7 @@ jobs:
           toolchain: stable
 
       - name: Install cargo-audit
-        uses: taiki-e/install-action@v2.87.29
+        uses: taiki-e/install-action@v2.87.31
         with:
           tool: cargo-audit
 

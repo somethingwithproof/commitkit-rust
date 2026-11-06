@@ -27,7 +27,9 @@ jobs:
 
       - name: Job Summary
         if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
         run: |
           echo "### Job Results ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** $JOB_STATUS" >> $GITHUB_STEP_SUMMARY

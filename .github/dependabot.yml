@@ -9,6 +9,8 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: "ci(deps)"
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns:
@@ -27,6 +29,8 @@ updates:
       - dependency-type: "all"
     commit-message:
       prefix: "build(deps)"
+    cooldown:
+      default-days: 7
     groups:
       cargo-minor-patch:
         patterns:
@@ -45,6 +49,8 @@ updates:
       - dependency-type: "all"
     commit-message:
       prefix: "build(deps)"
+    cooldown:
+      default-days: 7
     groups:
       docker-minor-patch:
         patterns:
@@ -60,6 +66,8 @@ updates:
       time: "09:00"
     commit-message:
       prefix: "build(deps)"
+    cooldown:
+      default-days: 7
     groups:
       docker-compose-minor-patch:
         patterns:
@@ -75,6 +83,8 @@ updates:
       time: "09:00"
     commit-message:
       prefix: "ci(deps)"
+    cooldown:
+      default-days: 7
     groups:
       pre-commit-minor-patch:
         patterns:

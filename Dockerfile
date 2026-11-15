@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025-2026 Thomas Vincent <thomasvincent@gmail.com>
+# SPDX-License-Identifier: MIT
+
 FROM rust:1.99-slim as builder
 
 WORKDIR /usr/src/app

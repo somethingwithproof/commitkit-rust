@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025-2026 Thomas Vincent <thomasvincent@gmail.com>
+// SPDX-License-Identifier: MIT
+
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 

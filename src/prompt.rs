@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025-2026 Thomas Vincent <thomasvincent@gmail.com>
+// SPDX-License-Identifier: MIT
+
 use anyhow::{Context, Result};
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Input, Select};

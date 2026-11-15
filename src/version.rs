@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025-2026 Thomas Vincent <thomasvincent@gmail.com>
+// SPDX-License-Identifier: MIT
+
 //! Version information for the crate
 //!
 //! This module contains version information about the crate, including the version from

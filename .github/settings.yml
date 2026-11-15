@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025-2026 Thomas Vincent <thomasvincent@gmail.com>
+# SPDX-License-Identifier: MIT
+
 repository:
   name: commitkit-rust
   description: A tool for creating and managing Git commits with conventional commit format

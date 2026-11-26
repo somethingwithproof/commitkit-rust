@@ -3,9 +3,9 @@
 
 //! Internationalization (i18n) support for CommitKit.
 //!
-//! Provides compile-time checked translations for 20 locales with POSIX
-//! environment detection (`LC_ALL` -> `LC_MESSAGES` -> `LANG`) and optional
-//! explicit override via `--lang`.
+//! Provides compile-time checked translations for 45 locales (including 6 RTL
+//! locales) with POSIX environment detection (`LC_ALL` -> `LC_MESSAGES` -> `LANG`)
+//! and optional explicit override via `--lang`.
 
 pub mod catalog;
 
@@ -35,11 +35,36 @@ pub enum Locale {
     Sv,
     Vi,
     Id,
+    AfZa,
+    AmEt,
+    ArEg,
+    ArMa,
+    FrMa,
+    FrSn,
+    HaNg,
+    IgNg,
+    MgMg,
+    RwRw,
+    SoSo,
+    SwKe,
+    XhZa,
+    YoNg,
+    ZuZa,
+    Bn,
+    Fa,
+    He,
+    Mr,
+    Ta,
+    Te,
+    Th,
+    Ur,
+    Ms,
+    Fil,
 }
 
 impl Locale {
-    /// All 20 supported locales.
-    pub const ALL: [Locale; 20] = [
+    /// All 45 supported locales.
+    pub const ALL: [Locale; 45] = [
         Locale::En,
         Locale::De,
         Locale::Es,
@@ -60,6 +85,31 @@ impl Locale {
         Locale::Sv,
         Locale::Vi,
         Locale::Id,
+        Locale::AfZa,
+        Locale::AmEt,
+        Locale::ArEg,
+        Locale::ArMa,
+        Locale::FrMa,
+        Locale::FrSn,
+        Locale::HaNg,
+        Locale::IgNg,
+        Locale::MgMg,
+        Locale::RwRw,
+        Locale::SoSo,
+        Locale::SwKe,
+        Locale::XhZa,
+        Locale::YoNg,
+        Locale::ZuZa,
+        Locale::Bn,
+        Locale::Fa,
+        Locale::He,
+        Locale::Mr,
+        Locale::Ta,
+        Locale::Te,
+        Locale::Th,
+        Locale::Ur,
+        Locale::Ms,
+        Locale::Fil,
     ];
 
     /// Canonical BCP 47 language tag for this locale.
@@ -85,10 +135,44 @@ impl Locale {
             Locale::Sv => "sv",
             Locale::Vi => "vi",
             Locale::Id => "id",
+            Locale::AfZa => "af-ZA",
+            Locale::AmEt => "am-ET",
+            Locale::ArEg => "ar-EG",
+            Locale::ArMa => "ar-MA",
+            Locale::FrMa => "fr-MA",
+            Locale::FrSn => "fr-SN",
+            Locale::HaNg => "ha-NG",
+            Locale::IgNg => "ig-NG",
+            Locale::MgMg => "mg-MG",
+            Locale::RwRw => "rw-RW",
+            Locale::SoSo => "so-SO",
+            Locale::SwKe => "sw-KE",
+            Locale::XhZa => "xh-ZA",
+            Locale::YoNg => "yo-NG",
+            Locale::ZuZa => "zu-ZA",
+            Locale::Bn => "bn",
+            Locale::Fa => "fa",
+            Locale::He => "he",
+            Locale::Mr => "mr",
+            Locale::Ta => "ta",
+            Locale::Te => "te",
+            Locale::Th => "th",
+            Locale::Ur => "ur",
+            Locale::Ms => "ms",
+            Locale::Fil => "fil",
         }
     }
 
-    /// Parse a BCP 47 or POSIX locale tag (e.g. `de_DE.UTF-8`, `pt-BR`, `zh_Hans_CN`, `C`).
+    /// Returns `true` if this locale uses a right-to-left (RTL) script.
+    pub const fn is_rtl(self) -> bool {
+        matches!(
+            self,
+            Locale::Ar | Locale::ArEg | Locale::ArMa | Locale::Fa | Locale::He | Locale::Ur
+        )
+    }
+
+    /// Parse a BCP 47 or POSIX locale tag (e.g. `de_DE.UTF-8`, `ar_EG.UTF-8`,
+    /// `fr-Latn-SN`, `zh_Hans_CN`, `iw_IL`, `tl_PH`, `C`).
     pub fn from_tag(tag: &str) -> Option<Locale> {
         let trimmed = tag.trim();
         if trimmed.is_empty() {
@@ -110,40 +194,22 @@ impl Locale {
             return Some(Locale::En);
         }
 
-        match normalized.as_str() {
-            "en" => return Some(Locale::En),
-            "de" => return Some(Locale::De),
-            "es" => return Some(Locale::Es),
-            "fr" => return Some(Locale::Fr),
-            "it" => return Some(Locale::It),
-            "pt" | "pt-br" => return Some(Locale::PtBr),
-            "nl" => return Some(Locale::Nl),
-            "ru" => return Some(Locale::Ru),
-            "uk" => return Some(Locale::Uk),
-            "ja" => return Some(Locale::Ja),
-            "ko" => return Some(Locale::Ko),
-            "zh" | "zh-cn" | "zh-sg" | "zh-hans" | "zh-hans-cn" | "zh-hans-sg" => {
-                return Some(Locale::ZhCn);
-            }
-            "zh-tw" | "zh-hk" | "zh-mo" | "zh-hant" | "zh-hant-tw" | "zh-hant-hk" => {
-                return Some(Locale::ZhTw);
-            }
-            "ar" => return Some(Locale::Ar),
-            "hi" => return Some(Locale::Hi),
-            "pl" => return Some(Locale::Pl),
-            "tr" => return Some(Locale::Tr),
-            "sv" => return Some(Locale::Sv),
-            "vi" => return Some(Locale::Vi),
-            "id" | "in" => return Some(Locale::Id),
-            _ => {}
-        }
-
         let primary = normalized.split('-').next().unwrap_or("");
+        let has_subtag = |target: &str| normalized.split('-').skip(1).any(|s| s == target);
+
         match primary {
             "en" => Some(Locale::En),
             "de" => Some(Locale::De),
             "es" => Some(Locale::Es),
-            "fr" => Some(Locale::Fr),
+            "fr" => {
+                if has_subtag("ma") {
+                    Some(Locale::FrMa)
+                } else if has_subtag("sn") {
+                    Some(Locale::FrSn)
+                } else {
+                    Some(Locale::Fr)
+                }
+            }
             "it" => Some(Locale::It),
             "pt" => Some(Locale::PtBr),
             "nl" => Some(Locale::Nl),
@@ -152,23 +218,48 @@ impl Locale {
             "ja" => Some(Locale::Ja),
             "ko" => Some(Locale::Ko),
             "zh" => {
-                if normalized.contains("hant")
-                    || normalized.contains("-tw")
-                    || normalized.contains("-hk")
-                    || normalized.contains("-mo")
-                {
+                if has_subtag("hant") || has_subtag("tw") || has_subtag("hk") || has_subtag("mo") {
                     Some(Locale::ZhTw)
                 } else {
                     Some(Locale::ZhCn)
                 }
             }
-            "ar" => Some(Locale::Ar),
+            "ar" => {
+                if has_subtag("eg") {
+                    Some(Locale::ArEg)
+                } else if has_subtag("ma") {
+                    Some(Locale::ArMa)
+                } else {
+                    Some(Locale::Ar)
+                }
+            }
             "hi" => Some(Locale::Hi),
             "pl" => Some(Locale::Pl),
             "tr" => Some(Locale::Tr),
             "sv" => Some(Locale::Sv),
             "vi" => Some(Locale::Vi),
             "id" | "in" => Some(Locale::Id),
+            "af" => Some(Locale::AfZa),
+            "am" => Some(Locale::AmEt),
+            "ha" => Some(Locale::HaNg),
+            "ig" => Some(Locale::IgNg),
+            "mg" => Some(Locale::MgMg),
+            "rw" => Some(Locale::RwRw),
+            "so" => Some(Locale::SoSo),
+            "sw" => Some(Locale::SwKe),
+            "xh" => Some(Locale::XhZa),
+            "yo" => Some(Locale::YoNg),
+            "zu" => Some(Locale::ZuZa),
+            "bn" => Some(Locale::Bn),
+            "fa" => Some(Locale::Fa),
+            "he" | "iw" => Some(Locale::He),
+            "mr" => Some(Locale::Mr),
+            "ta" => Some(Locale::Ta),
+            "te" => Some(Locale::Te),
+            "th" => Some(Locale::Th),
+            "ur" => Some(Locale::Ur),
+            "ms" => Some(Locale::Ms),
+            "fil" | "tl" => Some(Locale::Fil),
             _ => None,
         }
     }
@@ -265,11 +356,13 @@ mod tests {
     }
 
     #[test]
-    fn test_all_20_locales_parse() {
-        assert_eq!(Locale::ALL.len(), 20);
+    fn test_all_45_locales_parse() {
+        assert_eq!(Locale::ALL.len(), 45);
         for locale in Locale::ALL {
             assert_eq!(Locale::from_tag(locale.code()), Some(locale));
         }
+
+        // Standard POSIX & regional tags
         assert_eq!(Locale::from_tag("C"), Some(Locale::En));
         assert_eq!(Locale::from_tag("POSIX"), Some(Locale::En));
         assert_eq!(Locale::from_tag("en_US.UTF-8"), Some(Locale::En));
@@ -278,8 +371,62 @@ mod tests {
         assert_eq!(Locale::from_tag("zh_Hans_CN.UTF-8"), Some(Locale::ZhCn));
         assert_eq!(Locale::from_tag("zh_TW.UTF-8"), Some(Locale::ZhTw));
         assert_eq!(Locale::from_tag("zh-Hant"), Some(Locale::ZhTw));
+
+        // Regional variants must match before primary language fallbacks
+        assert_eq!(Locale::from_tag("ar_EG.UTF-8"), Some(Locale::ArEg));
+        assert_eq!(Locale::from_tag("ar-Arab-EG"), Some(Locale::ArEg));
+        assert_eq!(Locale::from_tag("ar_MA.UTF-8"), Some(Locale::ArMa));
+        assert_eq!(Locale::from_tag("ar-Arab-MA"), Some(Locale::ArMa));
+        assert_eq!(Locale::from_tag("ar_SA.UTF-8"), Some(Locale::Ar));
+        assert_eq!(Locale::from_tag("fr_MA.UTF-8"), Some(Locale::FrMa));
+        assert_eq!(Locale::from_tag("fr-Latn-MA"), Some(Locale::FrMa));
+        assert_eq!(Locale::from_tag("fr_SN.UTF-8"), Some(Locale::FrSn));
+        assert_eq!(Locale::from_tag("fr-Latn-SN"), Some(Locale::FrSn));
+        assert_eq!(Locale::from_tag("fr_CA.UTF-8"), Some(Locale::Fr));
+
+        // Legacy and Phase 2 African/Asian codes
+        assert_eq!(Locale::from_tag("iw_IL.UTF-8"), Some(Locale::He));
+        assert_eq!(Locale::from_tag("in_ID.UTF-8"), Some(Locale::Id));
+        assert_eq!(Locale::from_tag("tl_PH.UTF-8"), Some(Locale::Fil));
+        assert_eq!(Locale::from_tag("yo_NG.UTF-8"), Some(Locale::YoNg));
+        assert_eq!(Locale::from_tag("ig_NG.UTF-8"), Some(Locale::IgNg));
+        assert_eq!(Locale::from_tag("am_ET.UTF-8"), Some(Locale::AmEt));
+        assert_eq!(Locale::from_tag("sw_KE.UTF-8"), Some(Locale::SwKe));
+        assert_eq!(Locale::from_tag("fa_IR.UTF-8"), Some(Locale::Fa));
+        assert_eq!(Locale::from_tag("ur_PK.UTF-8"), Some(Locale::Ur));
+        assert_eq!(Locale::from_tag("ms_MY.UTF-8"), Some(Locale::Ms));
+
+        // Empty and unknown tags
         assert_eq!(Locale::from_tag(""), None);
         assert_eq!(Locale::from_tag("xx-UNKNOWN"), None);
+    }
+
+    #[test]
+    fn test_is_rtl_all_locales() {
+        let rtl_locales: Vec<Locale> = Locale::ALL
+            .iter()
+            .copied()
+            .filter(|locale| locale.is_rtl())
+            .collect();
+        let ltr_locales: Vec<Locale> = Locale::ALL
+            .iter()
+            .copied()
+            .filter(|locale| !locale.is_rtl())
+            .collect();
+
+        assert_eq!(rtl_locales.len(), 6);
+        assert_eq!(ltr_locales.len(), 39);
+        assert_eq!(
+            rtl_locales,
+            vec![
+                Locale::Ar,
+                Locale::ArEg,
+                Locale::ArMa,
+                Locale::Fa,
+                Locale::He,
+                Locale::Ur,
+            ]
+        );
     }
 
     #[test]

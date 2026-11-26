@@ -93,22 +93,44 @@ impl CommitAnalyzer {
 
     /// Get commit count by type as a formatted string
     pub fn get_type_summary(&self, days: Option<u32>) -> Result<String> {
-        let stats = self.analyze_commits(days)?;
+        self.get_type_summary_localized(days, crate::i18n::Locale::En)
+    }
 
+    /// Get commit count by type as a localized formatted string
+    pub fn get_type_summary_localized(
+        &self,
+        days: Option<u32>,
+        locale: crate::i18n::Locale,
+    ) -> Result<String> {
+        let stats = self.analyze_commits(days)?;
+        let cat = locale.catalog();
+
+        let days_str = days.map_or_else(|| cat.stats_days_all.to_string(), |d| d.to_string());
         let mut result = format!(
-            "Commit statistics for the past {} days:\n\n",
-            days.map_or("all".to_string(), |d| d.to_string())
+            "{}\n\n",
+            crate::i18n::fmt1(cat.stats_header, "days", &days_str)
         );
 
-        result.push_str(&format!("Total commits: {}\n\n", stats.total_commits));
+        result.push_str(&format!(
+            "{}\n\n",
+            crate::i18n::fmt1(
+                cat.stats_total_commits,
+                "count",
+                &stats.total_commits.to_string()
+            )
+        ));
 
         // Type breakdown
-        result.push_str("Commit types:\n");
+        result.push_str(&format!("{}\n", cat.stats_commit_types));
         let mut type_counts: Vec<(String, usize)> = stats.type_counts.into_iter().collect();
         type_counts.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
 
         for (commit_type, count) in type_counts {
-            let percentage = (count as f64 / stats.total_commits as f64) * 100.0;
+            let percentage = if stats.total_commits > 0 {
+                (count as f64 / stats.total_commits as f64) * 100.0
+            } else {
+                0.0
+            };
             result.push_str(&format!(
                 "  {}: {} ({:.1}%)\n",
                 commit_type, count, percentage
@@ -117,7 +139,7 @@ impl CommitAnalyzer {
 
         // Top scopes
         if !stats.scope_counts.is_empty() {
-            result.push_str("\nTop scopes:\n");
+            result.push_str(&format!("\n{}\n", cat.stats_top_scopes));
             let mut scope_counts: Vec<(String, usize)> = stats.scope_counts.into_iter().collect();
             scope_counts.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
 
@@ -128,13 +150,17 @@ impl CommitAnalyzer {
 
         // Top contributors
         if !stats.contributors.is_empty() {
-            result.push_str("\nTop contributors:\n");
+            result.push_str(&format!("\n{}\n", cat.stats_top_contributors));
             let mut contributor_counts: Vec<(String, usize)> =
                 stats.contributors.into_iter().collect();
             contributor_counts.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
 
             for (contributor, count) in contributor_counts.iter().take(5) {
-                let percentage = (*count as f64 / stats.total_commits as f64) * 100.0;
+                let percentage = if stats.total_commits > 0 {
+                    (*count as f64 / stats.total_commits as f64) * 100.0
+                } else {
+                    0.0
+                };
                 result.push_str(&format!(
                     "  {}: {} ({:.1}%)\n",
                     contributor, count, percentage

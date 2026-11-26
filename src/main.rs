@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 use anyhow::{Context, Result};
-use clap::Parser;
+use clap::{CommandFactory, FromArgMatches, Parser};
 use std::process;
 
 use commitkit::config::Config;
 use commitkit::git;
+use commitkit::i18n::{extract_cli_lang, fmt1, fmt2, Locale};
 use commitkit::prompt::{Prompter, TerminalPrompter};
 
 /// CLI tool for creating conventional commits
@@ -56,41 +57,76 @@ struct Args {
     /// Prepare commit message (used by git hook)
     #[clap(long)]
     prepare_msg: Option<String>,
+
+    /// Display language (e.g. en, de, ja, zh-CN, pt-BR)
+    #[clap(long)]
+    lang: Option<String>,
+}
+
+fn localized_command(locale: Locale) -> clap::Command {
+    let cat = locale.catalog();
+    Args::command()
+        .about(cat.cli_about)
+        .mut_arg("dry_run", |a| a.help(cat.cli_opt_dry_run))
+        .mut_arg("verbose", |a| a.help(cat.cli_opt_verbose))
+        .mut_arg("config", |a| a.help(cat.cli_opt_config))
+        .mut_arg("emoji", |a| a.help(cat.cli_opt_emoji))
+        .mut_arg("template", |a| a.help(cat.cli_opt_template))
+        .mut_arg("changelog", |a| a.help(cat.cli_opt_changelog))
+        .mut_arg("install_hooks", |a| a.help(cat.cli_opt_install_hooks))
+        .mut_arg("stats", |a| a.help(cat.cli_opt_stats))
+        .mut_arg("days", |a| a.help(cat.cli_opt_days))
+        .mut_arg("validate", |a| a.help(cat.cli_opt_validate))
+        .mut_arg("prepare_msg", |a| a.help(cat.cli_opt_prepare_msg))
+        .mut_arg("lang", |a| a.help(cat.cli_opt_lang))
 }
 
 fn main() {
-    if let Err(err) = run() {
-        eprintln!("Error: {}", err);
+    let raw_args: Vec<String> = std::env::args().collect();
+    let initial_locale = Locale::resolve(extract_cli_lang(&raw_args).as_deref());
+
+    if let Err(err) = run(&raw_args, initial_locale) {
+        let cat = initial_locale.catalog();
+        eprintln!("{}", fmt1(cat.err_prefix, "error", &err.to_string()));
         process::exit(1);
     }
 }
 
-fn run() -> Result<()> {
-    let args = Args::parse();
+fn run(raw_args: &[String], initial_locale: Locale) -> Result<()> {
+    let matches = localized_command(initial_locale).get_matches_from(raw_args);
+    let args = Args::from_arg_matches(&matches)?;
+    let locale = Locale::resolve(args.lang.as_deref());
+    let cat = locale.catalog();
 
     // Load config (custom path if provided)
     let config = if let Some(config_path) = &args.config {
         let path = std::path::PathBuf::from(config_path);
         if !path.exists() {
-            return Err(anyhow::anyhow!("Config file not found: {}", config_path));
+            return Err(anyhow::anyhow!(fmt1(
+                cat.err_config_not_found,
+                "path",
+                config_path
+            )));
         }
 
-        let config_str = std::fs::read_to_string(&path)
-            .context(format!("Failed to read config file: {}", config_path))?;
+        let config_str = std::fs::read_to_string(&path).context(fmt1(
+            cat.err_config_read,
+            "path",
+            config_path,
+        ))?;
 
-        toml::from_str(&config_str)
-            .context(format!("Failed to parse config from {}", config_path))?
+        toml::from_str(&config_str).context(fmt1(cat.err_config_parse, "path", config_path))?
     } else {
         Config::load()?
     };
 
     // Handle special commands that don't require a git repo
     if args.install_hooks {
-        return install_git_hooks(&args);
+        return install_git_hooks(&args, locale);
     }
 
     if let Some(validate_file) = &args.validate {
-        return validate_commit_message(validate_file, &config);
+        return validate_commit_message(validate_file, &config, locale);
     }
 
     if let Some(prepare_msg) = &args.prepare_msg {
@@ -98,23 +134,21 @@ fn run() -> Result<()> {
     }
 
     if args.stats {
-        return show_commit_stats(&args);
+        return show_commit_stats(&args, locale);
     }
 
     // The main commit workflow requires a git repo
     if !git::is_git_repo()? {
-        return Err(anyhow::anyhow!("Not in a git repository"));
+        return Err(anyhow::anyhow!(cat.err_not_git_repo));
     }
 
     // Check if there are staged changes to commit
     if !args.dry_run && !git::has_staged_changes()? {
-        return Err(anyhow::anyhow!(
-            "No staged changes to commit. Stage your changes with 'git add' first."
-        ));
+        return Err(anyhow::anyhow!(cat.err_no_staged_changes));
     }
 
     if args.verbose {
-        println!("Loading configuration...");
+        println!("{}", cat.msg_loading_config);
     }
 
     // Determine if emoji should be used (CLI argument overrides config)
@@ -128,16 +162,23 @@ fn run() -> Result<()> {
     };
 
     if args.verbose {
-        println!("Starting interactive commit process...");
+        println!("{}", cat.msg_starting_interactive);
     }
 
     // Handle template-based commit if requested
     if let Some(template_name) = &args.template {
-        return create_template_commit(template_name, &config, use_emoji, update_changelog, &args);
+        return create_template_commit(
+            template_name,
+            &config,
+            use_emoji,
+            update_changelog,
+            &args,
+            locale,
+        );
     }
 
     // Standard interactive commit flow
-    let prompter = TerminalPrompter::new();
+    let prompter = TerminalPrompter::with_locale(locale);
 
     let prefix = prompter.prompt_prefix(&config.prefixes)?;
     let scope = prompter.prompt_scope(&config.scopes)?;
@@ -153,34 +194,33 @@ fn run() -> Result<()> {
     };
 
     if args.verbose {
-        println!("Commit message generated successfully.");
+        println!("{}", cat.msg_generated);
     }
 
     // Handle dry run
     if args.dry_run {
-        println!("--- Commit Message ---");
+        println!("{}", cat.dry_run_header);
         println!("{}", commit_message);
         println!("---------------------");
         if args.verbose {
-            println!("Dry run mode: No commit was made.");
+            println!("{}", cat.msg_dry_run_notice);
         }
         return Ok(());
     }
 
     // Execute the commit
     if args.verbose {
-        println!("Executing git commit...");
+        println!("{}", cat.msg_executing_commit);
     }
 
-    git::run_git_commit(&commit_message, config.sign_off_commits)
-        .context("Failed to commit changes")?;
+    git::run_git_commit(&commit_message, config.sign_off_commits).context(cat.err_commit_failed)?;
 
-    println!("Successfully committed changes!");
+    println!("{}", cat.msg_commit_success);
 
     // Update changelog if enabled
     if update_changelog {
         if args.verbose {
-            println!("Updating changelog...");
+            println!("{}", cat.msg_updating_changelog);
         }
 
         let current_dir = std::env::current_dir()?;
@@ -196,10 +236,10 @@ fn run() -> Result<()> {
 
         changelog
             .add_entry(&prefix, Some(&scope), &subject, Some(&body))
-            .context("Failed to update changelog")?;
+            .context(cat.err_changelog_update)?;
 
         if args.verbose {
-            println!("Changelog updated successfully.");
+            println!("{}", cat.msg_changelog_updated);
         }
     }
 
@@ -207,36 +247,39 @@ fn run() -> Result<()> {
 }
 
 /// Install git hooks
-fn install_git_hooks(args: &Args) -> Result<()> {
+fn install_git_hooks(args: &Args, locale: Locale) -> Result<()> {
+    let cat = locale.catalog();
+
     // Find the git repo
     let current_dir = std::env::current_dir()?;
     let repo_root = commitkit::hooks::GitHookManager::find_repo_root(&current_dir)
-        .ok_or_else(|| anyhow::anyhow!("Not in a git repository"))?;
+        .ok_or_else(|| anyhow::anyhow!(cat.err_not_git_repo))?;
 
     let hook_manager = commitkit::hooks::GitHookManager::new(&repo_root);
 
     // Install the hooks
     hook_manager
         .install_prepare_commit_msg_hook()
-        .context("Failed to install prepare-commit-msg hook")?;
+        .context(cat.err_install_prepare_hook)?;
 
     hook_manager
         .install_commit_msg_hook()
-        .context("Failed to install commit-msg hook")?;
+        .context(cat.err_install_commit_msg_hook)?;
 
-    println!("Git hooks installed successfully!");
+    println!("{}", cat.msg_hooks_installed);
 
     if args.verbose {
-        println!("Installed hooks:");
-        println!("  - prepare-commit-msg: For automatically formatting messages");
-        println!("  - commit-msg: For validating commit messages");
+        println!("{}", cat.msg_installed_hooks_header);
+        println!("  - {}", cat.msg_hook_prepare_desc);
+        println!("  - {}", cat.msg_hook_validate_desc);
     }
 
     Ok(())
 }
 
 /// Validate a commit message against conventional commits standard
-fn validate_commit_message(file_path: &str, config: &Config) -> Result<()> {
+fn validate_commit_message(file_path: &str, config: &Config, locale: Locale) -> Result<()> {
+    let cat = locale.catalog();
     let validator = commitkit::hooks::CommitMessageValidator::new()
         .min_subject_length(config.min_subject_len)
         .max_subject_length(config.max_subject_len)
@@ -244,24 +287,16 @@ fn validate_commit_message(file_path: &str, config: &Config) -> Result<()> {
 
     match validator.validate_file(file_path) {
         Ok(_) => {
-            println!("Commit message is valid.");
+            println!("{}", cat.msg_commit_valid);
             Ok(())
         }
         Err(err) => {
             let error_message = match err {
-                commitkit::hooks::ValidationError::InvalidFormat => {
-                    "Invalid format. Expected: <type>[(scope)]: <subject>"
-                }
-                commitkit::hooks::ValidationError::InvalidType => {
-                    "Invalid commit type. Use one of the conventional commit types."
-                }
-                commitkit::hooks::ValidationError::SubjectTooShort => {
-                    "Subject is too short. Make it more descriptive."
-                }
-                commitkit::hooks::ValidationError::SubjectTooLong => {
-                    "Subject is too long. Keep it under the maximum length."
-                }
-                commitkit::hooks::ValidationError::InvalidScope => "Invalid scope format.",
+                commitkit::hooks::ValidationError::InvalidFormat => cat.err_validation_format,
+                commitkit::hooks::ValidationError::InvalidType => cat.err_validation_type,
+                commitkit::hooks::ValidationError::SubjectTooShort => cat.err_validation_short,
+                commitkit::hooks::ValidationError::SubjectTooLong => cat.err_validation_long,
+                commitkit::hooks::ValidationError::InvalidScope => cat.err_validation_scope,
             };
 
             Err(anyhow::anyhow!(error_message))
@@ -301,13 +336,14 @@ fn prepare_commit_message(message: &str, config: &Config) -> Result<()> {
 }
 
 /// Show commit statistics
-fn show_commit_stats(args: &Args) -> Result<()> {
+fn show_commit_stats(args: &Args, locale: Locale) -> Result<()> {
+    let cat = locale.catalog();
     let current_dir = std::env::current_dir()?;
     let repo_root = commitkit::hooks::GitHookManager::find_repo_root(&current_dir)
-        .ok_or_else(|| anyhow::anyhow!("Not in a git repository"))?;
+        .ok_or_else(|| anyhow::anyhow!(cat.err_not_git_repo))?;
 
     let analyzer = commitkit::stats::CommitAnalyzer::new(repo_root.to_str().unwrap_or("."));
-    let summary = analyzer.get_type_summary(args.days)?;
+    let summary = analyzer.get_type_summary_localized(args.days, locale)?;
 
     println!("{}", summary);
     Ok(())
@@ -320,23 +356,31 @@ fn create_template_commit(
     use_emoji: bool,
     update_changelog: bool,
     args: &Args,
+    locale: Locale,
 ) -> Result<()> {
+    let cat = locale.catalog();
     // Initialize the template manager
     let template_manager = commitkit::template::TemplateManager::new(&config.templates_dir)?;
 
     // Get the requested template
     let template = template_manager
         .get_template(template_name)
-        .ok_or_else(|| anyhow::anyhow!("Template '{}' not found", template_name))?;
+        .ok_or_else(|| anyhow::anyhow!(fmt1(cat.err_template_not_found, "name", template_name)))?;
 
     println!(
-        "Using template: {} - {}",
-        template.name, template.description
+        "{}",
+        fmt2(
+            cat.msg_using_template,
+            "name",
+            &template.name,
+            "description",
+            &template.description
+        )
     );
 
     // Collect values for the template
     let mut values = std::collections::HashMap::new();
-    let prompter = TerminalPrompter::new();
+    let prompter = TerminalPrompter::with_locale(locale);
 
     // Extract placeholders from templates
     let re = regex::Regex::new(r"\{([^}]+)\}").unwrap();
@@ -345,7 +389,7 @@ fn create_template_commit(
     for cap in re.captures_iter(&template.subject_template) {
         let placeholder = cap[1].to_string();
         if let std::collections::hash_map::Entry::Vacant(e) = values.entry(placeholder) {
-            let prompt = format!("Enter value for {}: ", e.key());
+            let prompt = fmt1(cat.prompt_template_value, "name", e.key());
             let value = prompter.prompt_custom(&prompt)?;
             e.insert(value);
         }
@@ -356,7 +400,7 @@ fn create_template_commit(
         for cap in re.captures_iter(body_tpl) {
             let placeholder = cap[1].to_string();
             if let std::collections::hash_map::Entry::Vacant(e) = values.entry(placeholder) {
-                let prompt = format!("Enter value for {}: ", e.key());
+                let prompt = fmt1(cat.prompt_template_value, "name", e.key());
                 let value = prompter.prompt_custom(&prompt)?;
                 e.insert(value);
             }
@@ -368,7 +412,7 @@ fn create_template_commit(
         for cap in re.captures_iter(footer_tpl) {
             let placeholder = cap[1].to_string();
             if let std::collections::hash_map::Entry::Vacant(e) = values.entry(placeholder) {
-                let prompt = format!("Enter value for {}: ", e.key());
+                let prompt = fmt1(cat.prompt_template_value, "name", e.key());
                 let value = prompter.prompt_custom(&prompt)?;
                 e.insert(value);
             }
@@ -422,29 +466,28 @@ fn create_template_commit(
 
     // Handle dry run
     if args.dry_run {
-        println!("--- Commit Message from Template ---");
+        println!("{}", cat.dry_run_template_header);
         println!("{}", commit_message);
         println!("-----------------------------------");
         if args.verbose {
-            println!("Dry run mode: No commit was made.");
+            println!("{}", cat.msg_dry_run_notice);
         }
         return Ok(());
     }
 
     // Execute the commit
     if args.verbose {
-        println!("Executing git commit...");
+        println!("{}", cat.msg_executing_commit);
     }
 
-    git::run_git_commit(&commit_message, config.sign_off_commits)
-        .context("Failed to commit changes")?;
+    git::run_git_commit(&commit_message, config.sign_off_commits).context(cat.err_commit_failed)?;
 
-    println!("Successfully committed changes using template!");
+    println!("{}", cat.msg_template_commit_success);
 
     // Update changelog if enabled
     if update_changelog {
         if args.verbose {
-            println!("Updating changelog...");
+            println!("{}", cat.msg_updating_changelog);
         }
 
         let current_dir = std::env::current_dir()?;
@@ -460,10 +503,10 @@ fn create_template_commit(
 
         changelog
             .add_entry(&prefix, Some(&scope), &clean_subject, Some(&body))
-            .context("Failed to update changelog")?;
+            .context(cat.err_changelog_update)?;
 
         if args.verbose {
-            println!("Changelog updated successfully.");
+            println!("{}", cat.msg_changelog_updated);
         }
     }
 

@@ -6,6 +6,7 @@ use console::style;
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 
 use crate::config::Prefix;
+use crate::i18n::{fmt1, Locale};
 
 /// Trait defining the interaction methods for commit message creation
 pub trait Prompter {
@@ -20,12 +21,18 @@ pub trait Prompter {
 /// Terminal-based implementation of the Prompter trait using dialoguer
 pub struct TerminalPrompter {
     theme: ColorfulTheme,
+    locale: Locale,
 }
 
 impl TerminalPrompter {
     pub fn new() -> Self {
+        Self::with_locale(Locale::detect())
+    }
+
+    pub fn with_locale(locale: Locale) -> Self {
         Self {
             theme: ColorfulTheme::default(),
+            locale,
         }
     }
 }
@@ -38,17 +45,18 @@ impl Default for TerminalPrompter {
 
 impl Prompter for TerminalPrompter {
     fn prompt_prefix(&self, prefixes: &[Prefix]) -> Result<String> {
+        let cat = self.locale.catalog();
         let prefix_titles: Vec<String> = prefixes
             .iter()
             .map(|p| format!("{}: {}", p.title, p.description))
             .collect();
 
         let selection = Select::with_theme(&self.theme)
-            .with_prompt("Select commit type")
+            .with_prompt(cat.prompt_select_type)
             .items(&prefix_titles)
             .default(0)
             .interact()
-            .context("Failed to get prefix selection")?;
+            .context(cat.err_prompt_prefix)?;
 
         Ok(prefixes[selection].title.clone())
     }
@@ -58,16 +66,17 @@ impl Prompter for TerminalPrompter {
             return Ok(String::new());
         }
 
+        let cat = self.locale.catalog();
         // Add "None" as the first option
-        let mut display_scopes = vec!["None".to_string()];
+        let mut display_scopes = vec![cat.prompt_scope_none.to_string()];
         display_scopes.extend(scopes.iter().cloned());
 
         let selection = Select::with_theme(&self.theme)
-            .with_prompt("Select scope (optional)")
+            .with_prompt(cat.prompt_select_scope)
             .items(&display_scopes)
             .default(0)
             .interact()
-            .context("Failed to get scope selection")?;
+            .context(cat.err_prompt_scope)?;
 
         // Return empty string if "None" was selected
         if selection == 0 {
@@ -78,34 +87,30 @@ impl Prompter for TerminalPrompter {
     }
 
     fn prompt_subject(&self, max_length: usize) -> Result<String> {
-        let prompt = format!("Enter commit subject (max {} characters)", max_length);
+        let cat = self.locale.catalog();
+        let prompt = fmt1(cat.prompt_subject, "max", &max_length.to_string());
 
         let subject = Input::with_theme(&self.theme)
             .with_prompt(&prompt)
             .validate_with(|input: &String| -> Result<(), &str> {
                 if input.trim().is_empty() {
-                    Err("Subject cannot be empty")
+                    Err(cat.err_subject_empty)
                 } else if input.len() > max_length {
-                    Err("Subject is too long")
+                    Err(cat.err_subject_too_long)
                 } else {
                     Ok(())
                 }
             })
             .interact_text()
-            .context("Failed to get commit subject")?;
+            .context(cat.err_prompt_subject)?;
 
         Ok(subject)
     }
 
     fn prompt_body(&self) -> Result<String> {
-        println!(
-            "{}",
-            style("Enter commit body (leave empty to skip):").bold()
-        );
-        println!(
-            "{}",
-            style("Press Ctrl+D (Unix) or Ctrl+Z (Windows) followed by Enter when done.").dim()
-        );
+        let cat = self.locale.catalog();
+        println!("{}", style(cat.prompt_body).bold());
+        println!("{}", style(cat.prompt_body_hint).dim());
 
         let mut body = String::new();
         let stdin = std::io::stdin();
@@ -120,20 +125,22 @@ impl Prompter for TerminalPrompter {
     }
 
     fn prompt_footer(&self) -> Result<String> {
+        let cat = self.locale.catalog();
         let footer = Input::<String>::with_theme(&self.theme)
-            .with_prompt("Enter commit footer (optional)")
+            .with_prompt(cat.prompt_footer)
             .allow_empty(true)
             .interact_text()
-            .context("Failed to get commit footer")?;
+            .context(cat.err_prompt_footer)?;
 
         Ok(footer)
     }
 
     fn prompt_custom(&self, prompt: &str) -> Result<String> {
+        let cat = self.locale.catalog();
         let input = Input::<String>::with_theme(&self.theme)
             .with_prompt(prompt)
             .interact_text()
-            .context(format!("Failed to get input for: {}", prompt))?;
+            .context(fmt1(cat.err_prompt_custom, "prompt", prompt))?;
 
         Ok(input)
     }

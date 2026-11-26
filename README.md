@@ -69,9 +69,15 @@ OPTIONS:
         --days              Number of days to analyze for stats (default: all)
         --validate          Validate a commit message file
         --prepare-msg       Prepare commit message (used by git hook)
+        --lang <LANG>       Display language (e.g. en, de, ja, zh-CN, pt-BR)
     -h, --help              Print help information
     -V, --version           Print version information
 ```
+
+### Supported Languages
+
+CommitKit detects the display language from `LC_ALL`, `LC_MESSAGES`, and `LANG`, or accepts `--lang <LANG>`. It supports 20 languages:
+`en`, `de`, `es`, `fr`, `it`, `pt-BR`, `nl`, `ru`, `uk`, `ja`, `ko`, `zh-CN`, `zh-TW`, `ar`, `hi`, `pl`, `tr`, `sv`, `vi`, and `id`.
 
 ### Interactive process
 

@@ -19,7 +19,7 @@ CommitKit kayan aikin layin umarni ne da ke taimaka wa masu haɓaka manhajoji wa
   - Tabbatar da iyakar tsayin jigo
   - Tallafin jikin saƙon commit mai layuka da yawa
   - Tabbatar da ingancin shigarwa ta atomatik
-  - Zaɓin sanya hannu kan commit (`Signed-off-by`)
+  - Zaɓin ƙara layin `Signed-off-by` a cikin commit
   - Dacewa da tsarin aiki daban-daban
 
 - **Ƙarin Fasaloli**

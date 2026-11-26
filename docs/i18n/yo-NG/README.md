@@ -19,7 +19,7 @@ CommitKit jẹ́ ohun èlò ìlà àṣẹ (CLI) tí ó ń ran àwọn olùgbék
   - Ìdánilójú gígùn àkọlé tí ó pọ̀ jù lọ
   - Àtìlẹ́yìn fún ara ìfiránṣẹ́ commit oní-ìlà púpọ̀
   - Àyẹ̀wò ìjẹ́òótọ́ fúnra rẹ̀ fún ìtẹ̀síwájú
-  - Àṣàyàn fún commit oní-ìfọwọ́sí (`Signed-off-by`)
+  - Àṣàyàn láti fi ìlà `Signed-off-by` kún commit
   - Ìbámu pẹ̀lú àwọn ẹ̀rọ ìṣiṣẹ́ oríṣiríṣi
 
 - **Àwọn Àǹfààní Àfikún**

@@ -19,7 +19,7 @@ CommitKit es una herramienta de línea de comandos que ayuda a los desarrollador
   - Control de la longitud máxima del asunto
   - Compatibilidad con cuerpos de commit multilínea
   - Validación automática de la entrada
-  - Commits firmados (`Signed-off-by`) opcionales
+  - Línea `Signed-off-by` opcional en los commits
   - Compatibilidad multiplataforma
 
 - **Funciones avanzadas**

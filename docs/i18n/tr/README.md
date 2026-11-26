@@ -19,7 +19,7 @@ CommitKit, geliştiricilerin [Conventional Commits](https://www.conventionalcomm
   - Maksimum konu uzunluğu denetimi
   - Çok satırlı commit gövdesi desteği
   - Girdilerin otomatik doğrulanması
-  - İsteğe bağlı imzalı commit desteği (`Signed-off-by`)
+  - Commit'lere isteğe bağlı `Signed-off-by` satırı ekleme
   - Çapraz platform uyumluluğu
 
 - **Gelişmiş Özellikler**

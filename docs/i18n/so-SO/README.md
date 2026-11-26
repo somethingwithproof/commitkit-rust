@@ -19,7 +19,7 @@ CommitKit waa qalab khadka taliska (CLI) ah oo ka caawiya horumariyayaasha samay
   - Xakameynta dhererka ugu badan ee cinwaanka
   - Taageerada qoraalka dheer ee commit ee sadarro badan leh
   - Hubinta tooska ah ee xogta la geliyo
-  - Ikhtiyaarka saxiixa commit (`Signed-off-by`)
+  - Sadarka `Signed-off-by` ee ikhtiyaariga ah ee commit-yada
   - La-qabsiga nidaamyada hawlgalka ee kala duwan
 
 - **Astaamaha Horumarsan**

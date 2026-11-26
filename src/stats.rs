@@ -171,3 +171,96 @@ impl CommitAnalyzer {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::i18n::{fmt1, Locale};
+    use crate::tests::setup_test_repo;
+
+    fn add_commit(repo_path: &std::path::Path, message: &str) {
+        let status = Command::new("git")
+            .args(["commit", "--no-gpg-sign", "--allow-empty", "-m", message])
+            .current_dir(repo_path)
+            .status()
+            .expect("Failed to create test commit");
+        assert!(status.success(), "git commit failed for message: {message}");
+    }
+
+    #[test]
+    fn test_analyze_commits_and_english_summary() {
+        let repo = setup_test_repo();
+        add_commit(repo.path(), "feat(cli): add localized help");
+        add_commit(repo.path(), "fix(i18n): handle BCP 47 extensions");
+        add_commit(repo.path(), "feat: add second feature without scope");
+        add_commit(repo.path(), "non-conventional commit message");
+
+        let analyzer = CommitAnalyzer::new(repo.path().to_str().unwrap());
+        let stats = analyzer.analyze_commits(None).unwrap();
+        assert_eq!(stats.total_commits, 4);
+        assert_eq!(stats.type_counts.get("feat"), Some(&2));
+        assert_eq!(stats.type_counts.get("fix"), Some(&1));
+        assert_eq!(stats.scope_counts.get("cli"), Some(&1));
+        assert_eq!(stats.scope_counts.get("i18n"), Some(&1));
+        assert_eq!(stats.contributors.get("Test User"), Some(&4));
+        assert!(!stats.commits_by_date.is_empty());
+
+        let summary = analyzer.get_type_summary(None).unwrap();
+        let en = Locale::En.catalog();
+        assert!(summary.contains(&fmt1(en.stats_header, "days", en.stats_days_all)));
+        assert!(summary.contains(&fmt1(en.stats_total_commits, "count", "4")));
+        assert!(summary.contains(en.stats_commit_types));
+        assert!(summary.contains("feat: 2 (50.0%)"));
+        assert!(summary.contains("fix: 1 (25.0%)"));
+        assert!(summary.contains(en.stats_top_scopes));
+        assert!(summary.contains("cli: 1"));
+        assert!(summary.contains("i18n: 1"));
+        assert!(summary.contains(en.stats_top_contributors));
+        assert!(summary.contains("Test User: 4 (100.0%)"));
+    }
+
+    #[test]
+    fn test_get_type_summary_localized_multiple_locales_and_days() {
+        let repo = setup_test_repo();
+        add_commit(repo.path(), "feat(core): add stats localization");
+        add_commit(repo.path(), "docs(readme): clarify sign-off trailer");
+
+        let analyzer = CommitAnalyzer::new(repo.path().to_str().unwrap());
+
+        for (locale, days) in [
+            (Locale::De, None),
+            (Locale::Ja, Some(30)),
+            (Locale::Ar, Some(7)),
+            (Locale::PtBr, None),
+        ] {
+            let summary = analyzer.get_type_summary_localized(days, locale).unwrap();
+            let cat = locale.catalog();
+            let days_str = days.map_or_else(|| cat.stats_days_all.to_string(), |d| d.to_string());
+
+            assert!(summary.contains(&fmt1(cat.stats_header, "days", &days_str)));
+            assert!(summary.contains(&fmt1(cat.stats_total_commits, "count", "2")));
+            assert!(summary.contains(cat.stats_commit_types));
+            assert!(summary.contains(cat.stats_top_scopes));
+            assert!(summary.contains(cat.stats_top_contributors));
+            assert!(summary.contains("feat: 1 (50.0%)"));
+            assert!(summary.contains("docs: 1 (50.0%)"));
+            assert!(summary.contains("core: 1"));
+            assert!(summary.contains("readme: 1"));
+        }
+    }
+
+    #[test]
+    fn test_get_type_summary_empty_repo() {
+        let repo = setup_test_repo();
+        let analyzer = CommitAnalyzer::new(repo.path().to_str().unwrap());
+
+        let summary = analyzer
+            .get_type_summary_localized(None, Locale::Fr)
+            .unwrap();
+        let fr = Locale::Fr.catalog();
+        assert!(summary.contains(&fmt1(fr.stats_total_commits, "count", "0")));
+        assert!(summary.contains(fr.stats_commit_types));
+        assert!(!summary.contains(fr.stats_top_scopes));
+        assert!(!summary.contains(fr.stats_top_contributors));
+    }
+}

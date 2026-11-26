@@ -19,7 +19,7 @@ CommitKit är ett kommandoradsverktyg som hjälper utvecklare att skapa välstru
   - Kontroll av maximal rubriklängd
   - Stöd för flerradiga commit-brödtexter
   - Automatisk validering av inmatning
-  - Valfria signerade commits (`Signed-off-by`)
+  - Valfri `Signed-off-by`-rad i commits
   - Plattformsoberoende kompatibilitet
 
 - **Utökade funktioner**

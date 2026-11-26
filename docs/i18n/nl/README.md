@@ -19,7 +19,7 @@ CommitKit is een opdrachtregelprogramma dat ontwikkelaars helpt gestructureerde 
   - Handhaving van de maximale onderwerplengte
   - Ondersteuning voor meerregelige commitbeschrijvingen
   - Automatische invoervalidatie
-  - Optionele ondertekende commits (`Signed-off-by`)
+  - Optionele `Signed-off-by`-regel bij commits
   - Platformonafhankelijke compatibiliteit
 
 - **Uitgebreide functies**

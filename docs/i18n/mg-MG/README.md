@@ -19,7 +19,7 @@ CommitKit dia fitaovana amin'ny tsipika baiko manampy ny mpamorona rindrambaiko 
   - Fanaraha-maso ny halavan'ny lohateny farany ambony
   - Fanohanana ny votoatin'ny commit misy andalana maromaro
   - Fanamarinana mandeha ho azy ny fampidirana
-  - Fanaovana sonia commit tsy voatery (`Signed-off-by`)
+  - Andalan-tsoratra `Signed-off-by` tsy voatery amin'ny commit
   - Mifanaraka amin'ny rafitra fandidiana samihafa
 
 - **Endri-javatra Fanampiny**

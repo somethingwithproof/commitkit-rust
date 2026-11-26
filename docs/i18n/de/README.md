@@ -19,7 +19,7 @@ CommitKit ist ein Kommandozeilenwerkzeug, das Entwickler dabei unterstützt, gut
   - Durchsetzung der maximalen Betrefflänge
   - Unterstützung mehrzeiliger Commit-Textkörper
   - Automatische Validierung der Eingaben
-  - Optionale `Signed-off-by`-Commits
+  - Optionale `Signed-off-by`-Zeile in Commits
   - Plattformübergreifende Kompatibilität
 
 - **Erweiterte Funktionen**

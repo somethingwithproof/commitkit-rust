@@ -19,7 +19,7 @@ CommitKit is 'n bevelreël-hulpmiddel wat ontwikkelaars help om goed gestrukture
   - Handhawing van maksimum onderwerplengte
   - Ondersteuning vir meerreëlige commit-liggame
   - Outomatiese validering van invoer
-  - Opsionele ondertekende commits (`Signed-off-by`)
+  - Opsionele `Signed-off-by`-reël in commits
   - Kruisplatform-versoenbaarheid
 
 - **Uitgebreide kenmerke**

@@ -19,7 +19,7 @@ CommitKit は、[Conventional Commits](https://www.conventionalcommits.org/) 仕
   - 件名の最大文字数制限の適用
   - 複数行のコミット本文のサポート
   - 入力内容の自動検証
-  - 任意の `Signed-off-by` 署名付きコミット
+  - コミットへの任意の `Signed-off-by` 行の追加
   - クロスプラットフォーム対応
 
 - **拡張機能**

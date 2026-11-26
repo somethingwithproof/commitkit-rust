@@ -19,7 +19,7 @@ CommitKit to narzędzie wiersza poleceń pomagające programistom tworzyć uporz
   - Egzekwowanie maksymalnej długości tematu
   - Obsługa wielowierszowych treści commitów
   - Automatyczna walidacja danych wejściowych
-  - Opcjonalne podpisywanie commitów (`Signed-off-by`)
+  - Opcjonalna linia `Signed-off-by` w commitach
   - Zgodność wieloplatformowa
 
 - **Funkcje rozszerzone**

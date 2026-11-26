@@ -19,7 +19,7 @@ CommitKit 是一款命令列工具，協助開發者依照 [Conventional Commits
   - 強制執行主旨最大字元長度限制
   - 支援多行提交內文
   - 自動驗證輸入內容
-  - 可選的簽署提交（`Signed-off-by`）
+  - 可選在提交中加入 `Signed-off-by` 尾註
   - 跨平台相容
 
 - **進階功能**

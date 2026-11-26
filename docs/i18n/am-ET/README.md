@@ -19,7 +19,7 @@ CommitKit ገንቢዎች የ[Conventional Commits](https://www.conventionalcomm
   - የርዕስ ከፍተኛ ርዝመት ቁጥጥር
   - ባለብዙ መስመር የኮሚት አካል ድጋፍ
   - የግብዓት ራስ-ሰር ማረጋገጫ
-  - አማራጭ ፊርማ ያላቸው ኮሚቶች (`Signed-off-by`)
+  - በኮሚቶች ውስጥ አማራጭ `Signed-off-by` መስመር
   - ለተለያዩ ስርዓተ ክወናዎች ተስማሚነት
 
 - **የተሻሻሉ ባህሪያት**

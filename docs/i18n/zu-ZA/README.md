@@ -19,7 +19,7 @@ I-CommitKit iyithuluzi lomugqa womyalo (CLI) elisiza abathuthukisi bakhe imilaye
   - Ukuqinisekisa ubude obukhulu besihloko
   - Ukusekela imizimba yama-commit enemigqa eminingi
   - Ukuqinisekiswa okuzenzakalelayo kokufakiwe
-  - Ukhetho lwama-commit asayiniwe (`Signed-off-by`)
+  - Umugqa wokuzikhethela we-`Signed-off-by` kuma-commit
   - Ukusebenza kuzo zonke izinhlelo zokusebenza
 
 - **Izici Ezithuthukisiwe**

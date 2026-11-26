@@ -19,7 +19,7 @@ Ang CommitKit ay isang command-line tool na tumutulong sa mga developer na lumik
   - Pagpapatupad ng maximum na haba ng paksa
   - Suporta para sa maraming linyang katawan ng commit
   - Awtomatikong pag-validate ng input
-  - Opsyonal na mga signed-off na commit (`Signed-off-by`)
+  - Opsyonal na linyang `Signed-off-by` sa mga commit
   - Cross-platform na compatibility
 
 - **Mga Dagdag na Tampok**

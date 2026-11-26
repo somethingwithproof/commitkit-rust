@@ -19,7 +19,7 @@ CommitKit là công cụ dòng lệnh giúp lập trình viên tạo các thông
   - Kiểm soát độ dài tối đa của tiêu đề
   - Hỗ trợ nội dung commit nhiều dòng
   - Tự động kiểm tra tính hợp lệ của dữ liệu nhập
-  - Tùy chọn ký xác nhận commit (`Signed-off-by`)
+  - Tùy chọn thêm dòng `Signed-off-by` vào commit
   - Tương thích đa nền tảng
 
 - **Tính năng mở rộng**

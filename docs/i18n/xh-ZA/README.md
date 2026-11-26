@@ -19,7 +19,7 @@ I-CommitKit sisixhobo somgca womyalelo esinceda abaphuhlisi benze imiyalezo ye-c
   - Ukunyanzeliswa kobude obuphezulu besihloko
   - Inkxaso yemibhalo yomzimba we-commit enemigca emininzi
   - Ukuqinisekiswa okuzenzekelayo kwegalelo
-  - Ukhetho lwee-commit ezisayiniweyo (`Signed-off-by`)
+  - Umgca okhethekayo we-`Signed-off-by` kwii-commit
   - Ukuhambelana namaqonga ahlukeneyo
 
 - **Iimpawu Eziphuculweyo**

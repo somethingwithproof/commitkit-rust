@@ -19,7 +19,7 @@ CommitKit ialah alat baris perintah (CLI) yang membantu pembangun mencipta mesej
   - Penguatkuasaan had panjang maksimum subjek
   - Sokongan isi kandungan commit berbilang baris
   - Pengesahan input secara automatik
-  - Pilihan commit bertandatangan (`Signed-off-by`)
+  - Baris `Signed-off-by` pilihan pada commit
   - Keserasian merentas platform
 
 - **Ciri Lanjutan**

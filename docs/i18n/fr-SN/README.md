@@ -19,7 +19,7 @@ CommitKit est un outil CLI qui aide les développeurs à composer des messages d
   - Contrôle de la longueur maximale du titre
   - Gestion des corps de commit multilignes
   - Contrôle automatique des entrées
-  - Commits signés (`Signed-off-by`) en option
+  - Mention `Signed-off-by` facultative dans les commits
   - Compatibilité multiplateforme
 
 - **Fonctionnalités complémentaires**

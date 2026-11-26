@@ -19,7 +19,7 @@ CommitKit ni igikoresho cyo ku murongo w'amabwiriza (CLI) gifasha abahanga mu ik
   - Kugenzura uburebure ntarengwa bw'umutwe
   - Gushyigikira igihimba cya commit gifite imirongo myinshi
   - Igenzura ryikora ry'ibyinjiye
-  - Gushyira umukono kuri commit ku bushake (`Signed-off-by`)
+  - Umurongo wa `Signed-off-by` ku bushake muri commit
   - Gukora kuri sisitemu z'imikorere zitandukanye
 
 - **Ibiranga byongereweho**

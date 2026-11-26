@@ -19,7 +19,7 @@ CommitKit adalah alat baris perintah yang membantu pengembang membuat pesan comm
   - Penegakan panjang maksimum subjek
   - Dukungan isi commit multibaris
   - Validasi input otomatis
-  - Opsi commit bertanda tangan (`Signed-off-by`)
+  - Baris `Signed-off-by` opsional pada commit
   - Kompatibilitas lintas platform
 
 - **Fitur Tambahan**

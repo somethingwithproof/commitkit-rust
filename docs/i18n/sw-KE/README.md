@@ -19,7 +19,7 @@ CommitKit ni zana ya mstari wa amri (CLI) inayowasaidia wasanidi programu kuunda
   - Udhibiti wa urefu wa juu wa kichwa
   - Msaada wa maelezo ya commit yenye mistari mingi
   - Uthibitishaji otomatiki wa ingizo
-  - Hiari ya commit zenye saini (`Signed-off-by`)
+  - Mstari wa hiari wa `Signed-off-by` kwenye commit
   - Utangamano kwenye mifumo mbalimbali ya uendeshaji
 
 - **Vipengele Vilivyoboreshwa**

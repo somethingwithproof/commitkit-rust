@@ -19,7 +19,7 @@ CommitKit bụ ngwa ahịrị iwu na-enyere ndị mmepe sọftụwia aka ịmep�
   - Mmanye nke oke ogologo isiokwu
   - Nkwado maka ahụ ozi commit nwere ọtụtụ ahịrị
   - Nyochaa izi ezi nke ntinye na-akpaghị aka
-  - Nhọrọ commit nwere mbinye aka (`Signed-off-by`)
+  - Nhọrọ itinye ahịrị `Signed-off-by` na commit
   - Ndakọrịta n'ọtụtụ sistemụ arụmọrụ
 
 - **Atụmatụ Ebuliri Elu**

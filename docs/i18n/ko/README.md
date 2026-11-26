@@ -19,7 +19,7 @@ CommitKit은 개발자가 [Conventional Commits](https://www.conventionalcommits
   - 제목 최대 길이 제한 적용
   - 여러 줄 커밋 본문 지원
   - 입력값 자동 유효성 검사
-  - 선택적 서명 커밋(`Signed-off-by`)
+  - 커밋에 선택적 `Signed-off-by` 줄 추가
   - 크로스 플랫폼 호환성
 
 - **확장 기능**

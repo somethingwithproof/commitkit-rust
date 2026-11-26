@@ -3,11 +3,12 @@
 
 use anyhow::{Context, Result};
 use clap::{CommandFactory, FromArgMatches, Parser};
+use std::ffi::OsString;
 use std::process;
 
 use commitkit::config::Config;
 use commitkit::git;
-use commitkit::i18n::{extract_cli_lang, fmt1, fmt2, Locale};
+use commitkit::i18n::{extract_cli_lang_os, fmt1, fmt2, Locale};
 use commitkit::prompt::{Prompter, TerminalPrompter};
 
 /// CLI tool for creating conventional commits
@@ -82,8 +83,8 @@ fn localized_command(locale: Locale) -> clap::Command {
 }
 
 fn main() {
-    let raw_args: Vec<String> = std::env::args().collect();
-    let initial_locale = Locale::resolve(extract_cli_lang(&raw_args).as_deref());
+    let raw_args: Vec<OsString> = std::env::args_os().collect();
+    let initial_locale = Locale::resolve(extract_cli_lang_os(&raw_args).as_deref());
 
     if let Err(err) = run(&raw_args, initial_locale) {
         let cat = initial_locale.catalog();
@@ -92,7 +93,7 @@ fn main() {
     }
 }
 
-fn run(raw_args: &[String], initial_locale: Locale) -> Result<()> {
+fn run(raw_args: &[OsString], initial_locale: Locale) -> Result<()> {
     let matches = localized_command(initial_locale).get_matches_from(raw_args);
     let args = Args::from_arg_matches(&matches)?;
     let locale = Locale::resolve(args.lang.as_deref());
@@ -109,13 +110,11 @@ fn run(raw_args: &[String], initial_locale: Locale) -> Result<()> {
             )));
         }
 
-        let config_str = std::fs::read_to_string(&path).context(fmt1(
-            cat.err_config_read,
-            "path",
-            config_path,
-        ))?;
+        let config_str = std::fs::read_to_string(&path)
+            .with_context(|| fmt1(cat.err_config_read, "path", config_path))?;
 
-        toml::from_str(&config_str).context(fmt1(cat.err_config_parse, "path", config_path))?
+        toml::from_str(&config_str)
+            .with_context(|| fmt1(cat.err_config_parse, "path", config_path))?
     } else {
         Config::load()?
     };
@@ -165,9 +164,12 @@ fn run(raw_args: &[String], initial_locale: Locale) -> Result<()> {
         println!("{}", cat.msg_starting_interactive);
     }
 
+    let prompter = TerminalPrompter::with_locale(locale);
+
     // Handle template-based commit if requested
     if let Some(template_name) = &args.template {
-        return create_template_commit(
+        return create_template_commit_with_prompter(
+            &prompter,
             template_name,
             &config,
             use_emoji,
@@ -177,8 +179,26 @@ fn run(raw_args: &[String], initial_locale: Locale) -> Result<()> {
         );
     }
 
-    // Standard interactive commit flow
-    let prompter = TerminalPrompter::with_locale(locale);
+    run_interactive_commit(
+        &prompter,
+        &config,
+        use_emoji,
+        update_changelog,
+        &args,
+        locale,
+    )
+}
+
+/// Run the standard interactive commit flow using the given prompter
+fn run_interactive_commit(
+    prompter: &dyn Prompter,
+    config: &Config,
+    use_emoji: bool,
+    update_changelog: bool,
+    args: &Args,
+    locale: Locale,
+) -> Result<()> {
+    let cat = locale.catalog();
 
     let prefix = prompter.prompt_prefix(&config.prefixes)?;
     let scope = prompter.prompt_scope(&config.scopes)?;
@@ -277,6 +297,20 @@ fn install_git_hooks(args: &Args, locale: Locale) -> Result<()> {
     Ok(())
 }
 
+fn validation_error_message(
+    err: commitkit::hooks::ValidationError,
+    locale: Locale,
+) -> &'static str {
+    let cat = locale.catalog();
+    match err {
+        commitkit::hooks::ValidationError::InvalidFormat => cat.err_validation_format,
+        commitkit::hooks::ValidationError::InvalidType => cat.err_validation_type,
+        commitkit::hooks::ValidationError::SubjectTooShort => cat.err_validation_short,
+        commitkit::hooks::ValidationError::SubjectTooLong => cat.err_validation_long,
+        commitkit::hooks::ValidationError::InvalidScope => cat.err_validation_scope,
+    }
+}
+
 /// Validate a commit message against conventional commits standard
 fn validate_commit_message(file_path: &str, config: &Config, locale: Locale) -> Result<()> {
     let cat = locale.catalog();
@@ -290,17 +324,7 @@ fn validate_commit_message(file_path: &str, config: &Config, locale: Locale) -> 
             println!("{}", cat.msg_commit_valid);
             Ok(())
         }
-        Err(err) => {
-            let error_message = match err {
-                commitkit::hooks::ValidationError::InvalidFormat => cat.err_validation_format,
-                commitkit::hooks::ValidationError::InvalidType => cat.err_validation_type,
-                commitkit::hooks::ValidationError::SubjectTooShort => cat.err_validation_short,
-                commitkit::hooks::ValidationError::SubjectTooLong => cat.err_validation_long,
-                commitkit::hooks::ValidationError::InvalidScope => cat.err_validation_scope,
-            };
-
-            Err(anyhow::anyhow!(error_message))
-        }
+        Err(err) => Err(anyhow::anyhow!(validation_error_message(err, locale))),
     }
 }
 
@@ -350,7 +374,8 @@ fn show_commit_stats(args: &Args, locale: Locale) -> Result<()> {
 }
 
 /// Create a commit using a template
-fn create_template_commit(
+fn create_template_commit_with_prompter(
+    prompter: &dyn Prompter,
     template_name: &str,
     config: &Config,
     use_emoji: bool,
@@ -380,7 +405,6 @@ fn create_template_commit(
 
     // Collect values for the template
     let mut values = std::collections::HashMap::new();
-    let prompter = TerminalPrompter::with_locale(locale);
 
     // Extract placeholders from templates
     let re = regex::Regex::new(r"\{([^}]+)\}").unwrap();
@@ -511,4 +535,507 @@ fn create_template_commit(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use commitkit::config::Prefix;
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
+    use std::sync::Mutex;
+    use tempfile::TempDir;
+
+    static CWD_LOCK: Mutex<()> = Mutex::new(());
+
+    struct DirGuard {
+        original: PathBuf,
+    }
+
+    impl DirGuard {
+        fn enter(path: &Path) -> Self {
+            let original = std::env::current_dir().expect("failed to get current dir");
+            std::env::set_current_dir(path).expect("failed to change dir");
+            Self { original }
+        }
+    }
+
+    impl Drop for DirGuard {
+        fn drop(&mut self) {
+            let _ = std::env::set_current_dir(&self.original);
+        }
+    }
+
+    struct StubPrompter {
+        prefix: String,
+        scope: String,
+        subject: String,
+        body: String,
+        footer: String,
+    }
+
+    impl StubPrompter {
+        fn new() -> Self {
+            Self {
+                prefix: "feat".to_string(),
+                scope: "cli".to_string(),
+                subject: "add localized output".to_string(),
+                body: "Body details".to_string(),
+                footer: "Refs #1".to_string(),
+            }
+        }
+    }
+
+    impl Prompter for StubPrompter {
+        fn prompt_prefix(&self, _prefixes: &[Prefix]) -> Result<String> {
+            Ok(self.prefix.clone())
+        }
+
+        fn prompt_scope(&self, _scopes: &[String]) -> Result<String> {
+            Ok(self.scope.clone())
+        }
+
+        fn prompt_subject(&self, _max_length: usize) -> Result<String> {
+            Ok(self.subject.clone())
+        }
+
+        fn prompt_body(&self) -> Result<String> {
+            Ok(self.body.clone())
+        }
+
+        fn prompt_footer(&self) -> Result<String> {
+            Ok(self.footer.clone())
+        }
+
+        fn prompt_custom(&self, prompt: &str) -> Result<String> {
+            Ok(format!("val({prompt})"))
+        }
+    }
+
+    fn init_git_repo() -> TempDir {
+        let dir = TempDir::new().expect("failed to create temp dir");
+        assert!(Command::new("git")
+            .args(["init"])
+            .current_dir(dir.path())
+            .status()
+            .unwrap()
+            .success());
+        assert!(Command::new("git")
+            .args(["config", "user.name", "Test User"])
+            .current_dir(dir.path())
+            .status()
+            .unwrap()
+            .success());
+        assert!(Command::new("git")
+            .args(["config", "user.email", "test@example.com"])
+            .current_dir(dir.path())
+            .status()
+            .unwrap()
+            .success());
+        assert!(Command::new("git")
+            .args(["config", "commit.gpgsign", "false"])
+            .current_dir(dir.path())
+            .status()
+            .unwrap()
+            .success());
+        dir
+    }
+
+    fn os_args(slice: &[&str]) -> Vec<OsString> {
+        slice.iter().map(OsString::from).collect()
+    }
+
+    fn test_config() -> Config {
+        Config {
+            sign_off_commits: false,
+            prefixes: vec![
+                Prefix {
+                    title: "feat".to_string(),
+                    description: "A new feature".to_string(),
+                },
+                Prefix {
+                    title: "fix".to_string(),
+                    description: "A bug fix".to_string(),
+                },
+                Prefix {
+                    title: "chore".to_string(),
+                    description: "Other changes".to_string(),
+                },
+            ],
+            scopes: vec!["core".to_string(), "cli".to_string()],
+            max_subject_len: 72,
+            min_subject_len: 3,
+            use_emoji: false,
+            update_changelog: false,
+            templates_dir: ".commitkit/templates".to_string(),
+            validate_commit_msg: true,
+        }
+    }
+
+    fn default_args(dry_run: bool, verbose: bool) -> Args {
+        Args {
+            dry_run,
+            verbose,
+            config: None,
+            emoji: false,
+            template: None,
+            changelog: false,
+            install_hooks: false,
+            stats: false,
+            days: None,
+            validate: None,
+            prepare_msg: None,
+            lang: None,
+        }
+    }
+
+    #[test]
+    fn test_localized_command_help_de_and_ja() {
+        for locale in [Locale::De, Locale::Ja] {
+            let cat = locale.catalog();
+            let mut cmd = localized_command(locale);
+            let help = cmd.render_help().to_string();
+
+            assert!(help.contains(cat.cli_about));
+            assert!(help.contains(cat.cli_opt_dry_run));
+            assert!(help.contains(cat.cli_opt_verbose));
+            assert!(help.contains(cat.cli_opt_config));
+            assert!(help.contains(cat.cli_opt_emoji));
+            assert!(help.contains(cat.cli_opt_template));
+            assert!(help.contains(cat.cli_opt_changelog));
+            assert!(help.contains(cat.cli_opt_install_hooks));
+            assert!(help.contains(cat.cli_opt_stats));
+            assert!(help.contains(cat.cli_opt_days));
+            assert!(help.contains(cat.cli_opt_validate));
+            assert!(help.contains(cat.cli_opt_prepare_msg));
+            assert!(help.contains(cat.cli_opt_lang));
+        }
+    }
+
+    #[test]
+    fn test_validate_commit_message_valid_and_all_errors() {
+        let dir = TempDir::new().unwrap();
+        let config = test_config();
+
+        for locale in [Locale::En, Locale::De] {
+            let cat = locale.catalog();
+
+            let valid_file = dir.path().join("valid.txt");
+            std::fs::write(&valid_file, "feat(core): add localized CLI messages\n").unwrap();
+            assert!(validate_commit_message(valid_file.to_str().unwrap(), &config, locale).is_ok());
+
+            let invalid_fmt = dir.path().join("invalid_fmt.txt");
+            std::fs::write(&invalid_fmt, "not a conventional commit\n").unwrap();
+            assert_eq!(
+                validate_commit_message(invalid_fmt.to_str().unwrap(), &config, locale)
+                    .unwrap_err()
+                    .to_string(),
+                cat.err_validation_format
+            );
+
+            let invalid_type = dir.path().join("invalid_type.txt");
+            std::fs::write(&invalid_type, "unknown: valid length subject line\n").unwrap();
+            assert_eq!(
+                validate_commit_message(invalid_type.to_str().unwrap(), &config, locale)
+                    .unwrap_err()
+                    .to_string(),
+                cat.err_validation_type
+            );
+
+            let too_short = dir.path().join("short.txt");
+            std::fs::write(&too_short, "feat: hi\n").unwrap();
+            assert_eq!(
+                validate_commit_message(too_short.to_str().unwrap(), &config, locale)
+                    .unwrap_err()
+                    .to_string(),
+                cat.err_validation_short
+            );
+
+            let too_long = dir.path().join("long.txt");
+            std::fs::write(&too_long, format!("feat: {}\n", "a".repeat(120))).unwrap();
+            assert_eq!(
+                validate_commit_message(too_long.to_str().unwrap(), &config, locale)
+                    .unwrap_err()
+                    .to_string(),
+                cat.err_validation_long
+            );
+
+            assert_eq!(
+                validation_error_message(commitkit::hooks::ValidationError::InvalidScope, locale),
+                cat.err_validation_scope
+            );
+        }
+    }
+
+    #[test]
+    fn test_prepare_commit_message_variants() {
+        let mut config = test_config();
+        assert!(prepare_commit_message("feat(cli): already valid", &config).is_ok());
+        assert!(prepare_commit_message("plain message", &config).is_ok());
+
+        config.use_emoji = true;
+        assert!(prepare_commit_message("plain message with emoji", &config).is_ok());
+    }
+
+    #[test]
+    fn test_run_config_errors_and_cli_commands() {
+        let _lock = CWD_LOCK.lock().unwrap();
+        let temp = TempDir::new().unwrap();
+
+        // 1. Nonexistent --config path
+        let missing = temp.path().join("missing.toml");
+        let missing_str = missing.to_str().unwrap();
+        let err = run(
+            &os_args(&["commitkit", "--lang", "de", "--config", missing_str]),
+            Locale::De,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            fmt1(
+                Locale::De.catalog().err_config_not_found,
+                "path",
+                missing_str
+            )
+        );
+
+        // 2. Unreadable --config (directory instead of file)
+        let dir_as_config = temp.path().to_str().unwrap();
+        let err = run(
+            &os_args(&["commitkit", "--lang", "de", "--config", dir_as_config]),
+            Locale::De,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            fmt1(Locale::De.catalog().err_config_read, "path", dir_as_config)
+        );
+
+        // 3. Invalid TOML --config
+        let bad_toml = temp.path().join("bad.toml");
+        std::fs::write(&bad_toml, "not valid = [toml").unwrap();
+        let bad_toml_str = bad_toml.to_str().unwrap();
+        let err = run(
+            &os_args(&["commitkit", "--lang", "ja", "--config", bad_toml_str]),
+            Locale::Ja,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            fmt1(Locale::Ja.catalog().err_config_parse, "path", bad_toml_str)
+        );
+
+        // 4. Valid --config with --validate and --prepare-msg
+        let good_cfg = temp.path().join("good.toml");
+        std::fs::write(
+            &good_cfg,
+            r#"
+sign_off_commits = false
+prefixes = [
+    { title = "feat", description = "A new feature" },
+    { title = "chore", description = "Other changes" }
+]
+scopes = ["i18n"]
+max_subject_len = 72
+use_emoji = false
+"#,
+        )
+        .unwrap();
+        let good_cfg_str = good_cfg.to_str().unwrap();
+
+        let msg_file = temp.path().join("COMMIT_EDITMSG");
+        std::fs::write(&msg_file, "feat(i18n): validate localized message\n").unwrap();
+        let msg_file_str = msg_file.to_str().unwrap();
+
+        assert!(run(
+            &os_args(&[
+                "commitkit",
+                "--lang",
+                "fr",
+                "--config",
+                good_cfg_str,
+                "--validate",
+                msg_file_str,
+            ]),
+            Locale::Fr,
+        )
+        .is_ok());
+
+        assert!(run(
+            &os_args(&[
+                "commitkit",
+                "--config",
+                good_cfg_str,
+                "--prepare-msg",
+                "update readme",
+            ]),
+            Locale::En,
+        )
+        .is_ok());
+
+        // 5. Commands outside a git repo fail with localized err_not_git_repo
+        let non_git = TempDir::new().unwrap();
+        {
+            let _cwd = DirGuard::enter(non_git.path());
+
+            let err = run(
+                &os_args(&["commitkit", "--lang", "de", "--install-hooks"]),
+                Locale::De,
+            )
+            .unwrap_err();
+            assert_eq!(err.to_string(), Locale::De.catalog().err_not_git_repo);
+
+            let err = run(
+                &os_args(&["commitkit", "--lang", "de", "--stats"]),
+                Locale::De,
+            )
+            .unwrap_err();
+            assert_eq!(err.to_string(), Locale::De.catalog().err_not_git_repo);
+
+            let err = run(&os_args(&["commitkit", "--lang", "de"]), Locale::De).unwrap_err();
+            assert_eq!(err.to_string(), Locale::De.catalog().err_not_git_repo);
+        }
+
+        // 6. Commands inside a git repo: install-hooks, stats, and no-staged-changes error
+        let repo = init_git_repo();
+        assert!(Command::new("git")
+            .args([
+                "commit",
+                "--allow-empty",
+                "-m",
+                "feat(core): initial commit"
+            ])
+            .current_dir(repo.path())
+            .status()
+            .unwrap()
+            .success());
+        {
+            let _cwd = DirGuard::enter(repo.path());
+
+            assert!(run(
+                &os_args(&["commitkit", "--lang", "de", "--install-hooks", "--verbose"]),
+                Locale::De,
+            )
+            .is_ok());
+
+            assert!(run(
+                &os_args(&["commitkit", "--lang", "ja", "--stats", "--days", "30"]),
+                Locale::Ja,
+            )
+            .is_ok());
+
+            let err = run(&os_args(&["commitkit", "--lang", "es"]), Locale::Es).unwrap_err();
+            assert_eq!(err.to_string(), Locale::Es.catalog().err_no_staged_changes);
+        }
+    }
+
+    #[test]
+    fn test_interactive_commit_dry_run_and_commit_with_changelog() {
+        let _lock = CWD_LOCK.lock().unwrap();
+        let config = test_config();
+        let prompter = StubPrompter::new();
+
+        // Dry run with verbose and emoji
+        let dry_args = default_args(true, true);
+        assert!(
+            run_interactive_commit(&prompter, &config, true, false, &dry_args, Locale::De).is_ok()
+        );
+        assert!(
+            run_interactive_commit(&prompter, &config, false, false, &dry_args, Locale::En).is_ok()
+        );
+
+        // Real commit + changelog update inside a temp git repo
+        let repo = init_git_repo();
+        std::fs::write(repo.path().join("file.txt"), "hello\n").unwrap();
+        assert!(Command::new("git")
+            .args(["add", "file.txt"])
+            .current_dir(repo.path())
+            .status()
+            .unwrap()
+            .success());
+
+        {
+            let _cwd = DirGuard::enter(repo.path());
+            let commit_args = default_args(false, true);
+            assert!(run_interactive_commit(
+                &prompter,
+                &config,
+                false,
+                true,
+                &commit_args,
+                Locale::Ja,
+            )
+            .is_ok());
+            assert!(repo.path().join("CHANGELOG.md").exists());
+        }
+    }
+
+    #[test]
+    fn test_template_commit_missing_dry_run_and_commit() {
+        let _lock = CWD_LOCK.lock().unwrap();
+        let repo = init_git_repo();
+        let tpl_dir = repo.path().join("templates");
+        let mut config = test_config();
+        config.templates_dir = tpl_dir.to_string_lossy().to_string();
+
+        let prompter = StubPrompter::new();
+        let dry_args = default_args(true, true);
+
+        // Missing template returns localized error
+        let err = create_template_commit_with_prompter(
+            &prompter,
+            "nonexistent",
+            &config,
+            false,
+            false,
+            &dry_args,
+            Locale::De,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            fmt1(
+                Locale::De.catalog().err_template_not_found,
+                "name",
+                "nonexistent"
+            )
+        );
+
+        // Built-in "feature" template with subject, body, and footer placeholders (dry-run + emoji)
+        assert!(create_template_commit_with_prompter(
+            &prompter,
+            "feature",
+            &config,
+            true,
+            false,
+            &dry_args,
+            Locale::Fr,
+        )
+        .is_ok());
+
+        // Real template commit + changelog update
+        std::fs::write(repo.path().join("tpl.txt"), "template commit\n").unwrap();
+        assert!(Command::new("git")
+            .args(["add", "tpl.txt"])
+            .current_dir(repo.path())
+            .status()
+            .unwrap()
+            .success());
+
+        {
+            let _cwd = DirGuard::enter(repo.path());
+            let commit_args = default_args(false, true);
+            assert!(create_template_commit_with_prompter(
+                &prompter,
+                "feature",
+                &config,
+                false,
+                true,
+                &commit_args,
+                Locale::En,
+            )
+            .is_ok());
+            assert!(repo.path().join("CHANGELOG.md").exists());
+        }
+    }
 }

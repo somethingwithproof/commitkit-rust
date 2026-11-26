@@ -194,22 +194,40 @@ impl Locale {
             return Some(Locale::En);
         }
 
-        let primary = normalized.split('-').next().unwrap_or("");
-        let has_subtag = |target: &str| normalized.split('-').skip(1).any(|s| s == target);
+        let mut parts = normalized.split('-');
+        let primary = parts.next().unwrap_or("");
+
+        // Parse core script and region subtags only, stopping before any BCP 47
+        // singleton-led extension (`u`, `t`, ...) or private-use (`x`) section.
+        let mut script: Option<&str> = None;
+        let mut region: Option<&str> = None;
+        for subtag in parts {
+            if subtag.len() == 1 {
+                break;
+            }
+            if script.is_none()
+                && region.is_none()
+                && subtag.len() == 4
+                && subtag.bytes().all(|b| b.is_ascii_alphabetic())
+            {
+                script = Some(subtag);
+            } else if region.is_none()
+                && ((subtag.len() == 2 && subtag.bytes().all(|b| b.is_ascii_alphabetic()))
+                    || (subtag.len() == 3 && subtag.bytes().all(|b| b.is_ascii_digit())))
+            {
+                region = Some(subtag);
+            }
+        }
 
         match primary {
             "en" => Some(Locale::En),
             "de" => Some(Locale::De),
             "es" => Some(Locale::Es),
-            "fr" => {
-                if has_subtag("ma") {
-                    Some(Locale::FrMa)
-                } else if has_subtag("sn") {
-                    Some(Locale::FrSn)
-                } else {
-                    Some(Locale::Fr)
-                }
-            }
+            "fr" => match region {
+                Some("ma") => Some(Locale::FrMa),
+                Some("sn") => Some(Locale::FrSn),
+                _ => Some(Locale::Fr),
+            },
             "it" => Some(Locale::It),
             "pt" => Some(Locale::PtBr),
             "nl" => Some(Locale::Nl),
@@ -217,22 +235,19 @@ impl Locale {
             "uk" => Some(Locale::Uk),
             "ja" => Some(Locale::Ja),
             "ko" => Some(Locale::Ko),
-            "zh" => {
-                if has_subtag("hant") || has_subtag("tw") || has_subtag("hk") || has_subtag("mo") {
-                    Some(Locale::ZhTw)
-                } else {
-                    Some(Locale::ZhCn)
-                }
-            }
-            "ar" => {
-                if has_subtag("eg") {
-                    Some(Locale::ArEg)
-                } else if has_subtag("ma") {
-                    Some(Locale::ArMa)
-                } else {
-                    Some(Locale::Ar)
-                }
-            }
+            "zh" => match script {
+                Some("hans") => Some(Locale::ZhCn),
+                Some("hant") => Some(Locale::ZhTw),
+                _ => match region {
+                    Some("tw" | "hk" | "mo") => Some(Locale::ZhTw),
+                    _ => Some(Locale::ZhCn),
+                },
+            },
+            "ar" => match region {
+                Some("eg") => Some(Locale::ArEg),
+                Some("ma") => Some(Locale::ArMa),
+                _ => Some(Locale::Ar),
+            },
             "hi" => Some(Locale::Hi),
             "pl" => Some(Locale::Pl),
             "tr" => Some(Locale::Tr),
@@ -316,6 +331,27 @@ pub fn extract_cli_lang(args: &[String]) -> Option<String> {
     None
 }
 
+/// Extract `--lang <value>` or `--lang=<value>` from OS-native CLI arguments so
+/// `--help` output can be localized without panicking on non-UTF-8 arguments.
+pub fn extract_cli_lang_os(args: &[std::ffi::OsString]) -> Option<String> {
+    let mut iter = args.iter().skip(1);
+    while let Some(arg) = iter.next() {
+        let Some(arg_str) = arg.to_str() else {
+            continue;
+        };
+        if arg_str == "--" {
+            break;
+        }
+        if arg_str == "--lang" {
+            return iter.next().and_then(|v| v.to_str().map(ToOwned::to_owned));
+        }
+        if let Some(val) = arg_str.strip_prefix("--lang=") {
+            return Some(val.to_string());
+        }
+    }
+    None
+}
+
 /// Replace a single `{name}` placeholder in a catalog template.
 pub fn fmt1(template: &str, key: &str, value: &str) -> String {
     template.replace(&format!("{{{key}}}"), value)
@@ -331,6 +367,35 @@ pub fn fmt2(template: &str, key1: &str, val1: &str, key2: &str, val2: &str) -> S
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::OsString;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    struct EnvGuard {
+        saved: Vec<(&'static str, Option<OsString>)>,
+    }
+
+    impl EnvGuard {
+        fn capture(keys: &[&'static str]) -> Self {
+            let saved = keys.iter().map(|&k| (k, std::env::var_os(k))).collect();
+            for &k in keys {
+                std::env::remove_var(k);
+            }
+            Self { saved }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            for (k, v) in &self.saved {
+                match v {
+                    Some(val) => std::env::set_var(k, val),
+                    None => std::env::remove_var(k),
+                }
+            }
+        }
+    }
 
     fn extract_placeholders(text: &str) -> Vec<String> {
         let mut placeholders = Vec::new();
@@ -366,11 +431,26 @@ mod tests {
         assert_eq!(Locale::from_tag("C"), Some(Locale::En));
         assert_eq!(Locale::from_tag("POSIX"), Some(Locale::En));
         assert_eq!(Locale::from_tag("en_US.UTF-8"), Some(Locale::En));
-        assert_eq!(Locale::from_tag("de_DE.UTF-8@euro"), Some(Locale::De));
+        assert_eq!(Locale::from_tag("  de_DE.UTF-8@euro  "), Some(Locale::De));
         assert_eq!(Locale::from_tag("pt_BR.UTF-8"), Some(Locale::PtBr));
+        assert_eq!(Locale::from_tag("zh"), Some(Locale::ZhCn));
         assert_eq!(Locale::from_tag("zh_Hans_CN.UTF-8"), Some(Locale::ZhCn));
         assert_eq!(Locale::from_tag("zh_TW.UTF-8"), Some(Locale::ZhTw));
         assert_eq!(Locale::from_tag("zh-Hant"), Some(Locale::ZhTw));
+        assert_eq!(Locale::from_tag("zh-MO"), Some(Locale::ZhTw));
+
+        // Chinese script precedence over region fallback
+        assert_eq!(Locale::from_tag("zh-Hans-HK"), Some(Locale::ZhCn));
+        assert_eq!(Locale::from_tag("zh-Hant-CN"), Some(Locale::ZhTw));
+        assert_eq!(Locale::from_tag("zh-HK"), Some(Locale::ZhTw));
+
+        // Singleton-led extension and private-use sections must not pollute core subtags
+        assert_eq!(Locale::from_tag("fr-SN-x-ma"), Some(Locale::FrSn));
+        assert_eq!(Locale::from_tag("zh-CN-x-tw"), Some(Locale::ZhCn));
+        assert_eq!(Locale::from_tag("ar-EG-u-nu-latn"), Some(Locale::ArEg));
+        assert_eq!(Locale::from_tag("fr-x-ma"), Some(Locale::Fr));
+        assert_eq!(Locale::from_tag("ar-t-eg"), Some(Locale::Ar));
+        assert_eq!(Locale::from_tag("ar-001"), Some(Locale::Ar));
 
         // Regional variants must match before primary language fallbacks
         assert_eq!(Locale::from_tag("ar_EG.UTF-8"), Some(Locale::ArEg));
@@ -398,6 +478,7 @@ mod tests {
 
         // Empty and unknown tags
         assert_eq!(Locale::from_tag(""), None);
+        assert_eq!(Locale::from_tag("   "), None);
         assert_eq!(Locale::from_tag("xx-UNKNOWN"), None);
     }
 
@@ -464,6 +545,61 @@ mod tests {
     }
 
     #[test]
+    fn test_detect_and_resolve_env_precedence() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let _guard = EnvGuard::capture(&["LC_ALL", "LC_MESSAGES", "LANG"]);
+
+        // No env vars set -> fallback to English
+        assert_eq!(Locale::detect(), Locale::En);
+        assert_eq!(Locale::resolve(None), Locale::En);
+
+        // LANG only
+        std::env::set_var("LANG", "ja_JP.UTF-8");
+        assert_eq!(Locale::detect(), Locale::Ja);
+        assert_eq!(Locale::resolve(None), Locale::Ja);
+
+        // Empty LC_MESSAGES is skipped in favor of LANG
+        std::env::set_var("LC_MESSAGES", "   ");
+        assert_eq!(Locale::detect(), Locale::Ja);
+
+        // LC_MESSAGES overrides LANG
+        std::env::set_var("LC_MESSAGES", "fr_SN.UTF-8");
+        assert_eq!(Locale::detect(), Locale::FrSn);
+
+        // LC_ALL overrides LC_MESSAGES and LANG
+        std::env::set_var("LC_ALL", "de_DE.UTF-8");
+        assert_eq!(Locale::detect(), Locale::De);
+
+        // Unknown value in highest-priority var falls back to English
+        std::env::set_var("LC_ALL", "zz_ZZ.UTF-8");
+        assert_eq!(Locale::detect(), Locale::En);
+
+        // Explicit tag overrides environment; unknown explicit tag falls back to English
+        std::env::set_var("LC_ALL", "de_DE.UTF-8");
+        assert_eq!(Locale::resolve(Some("pt-BR")), Locale::PtBr);
+        assert_eq!(Locale::resolve(Some("xx-UNKNOWN")), Locale::En);
+    }
+
+    #[test]
+    fn test_fmt1_and_fmt2() {
+        assert_eq!(
+            fmt1("Error: {error}", "error", "config missing"),
+            "Error: config missing"
+        );
+        assert_eq!(fmt1("{x} + {x}", "x", "1"), "1 + 1");
+        assert_eq!(
+            fmt2(
+                "Using template: {name} - {description}",
+                "name",
+                "feature",
+                "description",
+                "Standard feature"
+            ),
+            "Using template: feature - Standard feature"
+        );
+    }
+
+    #[test]
     fn test_extract_cli_lang() {
         let args = vec![
             "commitkit".to_string(),
@@ -478,5 +614,72 @@ mod tests {
 
         let args_none = vec!["commitkit".to_string(), "--dry-run".to_string()];
         assert_eq!(extract_cli_lang(&args_none), None);
+
+        let args_after_double_dash = vec![
+            "commitkit".to_string(),
+            "--".to_string(),
+            "--lang".to_string(),
+            "de".to_string(),
+        ];
+        assert_eq!(extract_cli_lang(&args_after_double_dash), None);
+
+        let args_trailing_flag = vec!["commitkit".to_string(), "--lang".to_string()];
+        assert_eq!(extract_cli_lang(&args_trailing_flag), None);
+    }
+
+    #[test]
+    fn test_extract_cli_lang_os() {
+        let to_os =
+            |slice: &[&str]| -> Vec<OsString> { slice.iter().map(OsString::from).collect() };
+
+        assert_eq!(
+            extract_cli_lang_os(&to_os(&["commitkit", "--lang", "ja", "--help"])),
+            Some("ja".to_string())
+        );
+        assert_eq!(
+            extract_cli_lang_os(&to_os(&["commitkit", "--lang=pt-BR"])),
+            Some("pt-BR".to_string())
+        );
+        assert_eq!(
+            extract_cli_lang_os(&to_os(&["commitkit", "--", "--lang", "de"])),
+            None
+        );
+        assert_eq!(
+            extract_cli_lang_os(&to_os(&["commitkit", "--", "--lang=de"])),
+            None
+        );
+        assert_eq!(extract_cli_lang_os(&to_os(&["commitkit", "--lang"])), None);
+        assert_eq!(
+            extract_cli_lang_os(&to_os(&["commitkit", "--dry-run"])),
+            None
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_extract_cli_lang_os_non_utf8() {
+        use std::os::unix::ffi::OsStringExt;
+
+        let non_utf8_path = OsString::from_vec(vec![b'/', b't', b'm', b'p', b'/', 0xff, 0xfe]);
+        let args_before = vec![
+            OsString::from("commitkit"),
+            OsString::from("--config"),
+            non_utf8_path.clone(),
+            OsString::from("--lang"),
+            OsString::from("de"),
+        ];
+        assert_eq!(extract_cli_lang_os(&args_before), Some("de".to_string()));
+
+        let args_non_utf8_val = vec![
+            OsString::from("commitkit"),
+            OsString::from("--lang"),
+            non_utf8_path,
+        ];
+        assert_eq!(extract_cli_lang_os(&args_non_utf8_val), None);
+
+        let mut eq_non_utf8 = b"--lang=".to_vec();
+        eq_non_utf8.extend_from_slice(&[0xff, 0xfe]);
+        let args_eq_non_utf8 = vec![OsString::from("commitkit"), OsString::from_vec(eq_non_utf8)];
+        assert_eq!(extract_cli_lang_os(&args_eq_non_utf8), None);
     }
 }

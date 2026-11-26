@@ -43,6 +43,12 @@ pub fn setup_test_repo() -> TempDir {
         .status()
         .expect("Failed to configure git user email");
 
+    std::process::Command::new("git")
+        .args(["config", "commit.gpgsign", "false"])
+        .current_dir(temp_dir.path())
+        .status()
+        .expect("Failed to disable git commit signing");
+
     temp_dir
 }
 

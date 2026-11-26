@@ -7,6 +7,7 @@ pub mod emoji;
 pub mod error;
 pub mod git;
 pub mod hooks;
+pub mod i18n;
 pub mod prompt;
 pub mod stats;
 pub mod template;

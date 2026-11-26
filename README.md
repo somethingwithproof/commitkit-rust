@@ -76,7 +76,7 @@ OPTIONS:
 
 ### Supported Languages
 
-CommitKit detects the display language from `LC_ALL`, `LC_MESSAGES`, and `LANG`, or accepts `--lang <LANG>`. It supports 45 languages (including 6 right-to-left locales: `ar`, `ar-EG`, `ar-MA`, `fa`, `he`, and `ur`):
+CommitKit detects the display language from `LC_ALL`, `LC_MESSAGES`, and `LANG`, or accepts `--lang <LANG>`. It supports 48 languages (including 6 right-to-left locales: `ar`, `ar-EG`, `ar-MA`, `fa`, `he`, and `ur`):
 
 | Code | Language | README | Code | Language | README | Code | Language | README |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -95,6 +95,7 @@ CommitKit detects the display language from `LC_ALL`, `LC_MESSAGES`, and `LANG`,
 | `zh-TW` | 繁體中文 | [README](docs/i18n/zh-TW/README.md) | `ig-NG` | Igbo | [README](docs/i18n/ig-NG/README.md) | `ur` | اردو | [README](docs/i18n/ur/README.md) |
 | `ar` | العربية | [README](docs/i18n/ar/README.md) | `mg-MG` | Malagasy | [README](docs/i18n/mg-MG/README.md) | `ms` | Bahasa Melayu | [README](docs/i18n/ms/README.md) |
 | `hi` | हिन्दी | [README](docs/i18n/hi/README.md) | `rw-RW` | Kinyarwanda | [README](docs/i18n/rw-RW/README.md) | `fil` | Filipino | [README](docs/i18n/fil/README.md) |
+| `bs` | Bosanski | [README](docs/i18n/bs/README.md) | `hr` | Hrvatski | [README](docs/i18n/hr/README.md) | `sr` | Српски | [README](docs/i18n/sr/README.md) |
 
 ### Interactive process
 
